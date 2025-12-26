@@ -1,18 +1,23 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Camera, X, Filter, Calculator, CalendarDays } from "lucide-react";
+import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { useNFeStore } from "@/store/nfe-store";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
-import { Produto, FiltrosProduto } from "@/types/nfe";
+import { Produto, HistoricoPedido } from "@/types/nfe";
 import CalculatorModal from "@/components/CalculatorModal";
+import PriceBreakdown from "@/components/PriceBreakdown";
 import BarcodeScanner from "@/components/BarcodeScanner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+
+interface FiltrosProduto {
+  busca: string;
+  fornecedorId?: string;
+  nfeId?: string;
+  dataInicio?: Date;
+  dataFim?: Date;
+}
 
 const ConsultaPreco = () => {
   const navigate = useNavigate();
@@ -26,7 +31,6 @@ const ConsultaPreco = () => {
     dataInicio: undefined,
     dataFim: undefined,
   });
-  const [showDateFilter, setShowDateFilter] = useState(false);
 
   const produtosFiltrados = useMemo(() => {
     let resultado = [...produtos];
@@ -100,8 +104,8 @@ const ConsultaPreco = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card shadow-card border-b border-border sticky top-0 z-10">
-        <div className="container py-4">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="container py-3 sm:py-4">
+          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
             <Button
               variant="ghost"
               size="icon"
@@ -110,9 +114,9 @@ const ConsultaPreco = () => {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-foreground">Consulta Preço</h1>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold text-foreground">Consulta Preço</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {produtosFiltrados.length} produto(s) encontrado(s)
               </p>
             </div>
@@ -131,10 +135,10 @@ const ConsultaPreco = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Buscar produto, código ou código de barras..."
+                placeholder="Buscar produto..."
                 value={filtros.busca}
                 onChange={(e) => setFiltros((prev) => ({ ...prev, busca: e.target.value }))}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 text-sm"
               />
               {filtros.busca && (
                 <button
@@ -158,13 +162,13 @@ const ConsultaPreco = () => {
       </header>
 
       {/* Filters */}
-      <div className="container py-4 border-b border-border bg-card/50">
-        <div className="flex items-center gap-2 mb-3">
+      <div className="container py-3 sm:py-4 border-b border-border bg-card/50">
+        <div className="flex items-center gap-2 mb-2 sm:mb-3">
           <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-foreground">Filtros</span>
+          <span className="text-xs sm:text-sm font-medium text-foreground">Filtros</span>
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="ml-auto text-xs">
-              Limpar filtros
+              Limpar
             </Button>
           )}
         </div>
@@ -175,7 +179,7 @@ const ConsultaPreco = () => {
               setFiltros((prev) => ({ ...prev, fornecedorId: value === "all" ? undefined : value }))
             }
           >
-            <SelectTrigger className="text-sm">
+            <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
               <SelectValue placeholder="Fornecedor" />
             </SelectTrigger>
             <SelectContent>
@@ -194,7 +198,7 @@ const ConsultaPreco = () => {
               setFiltros((prev) => ({ ...prev, nfeId: value === "all" ? undefined : value }))
             }
           >
-            <SelectTrigger className="text-sm">
+            <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
               <SelectValue placeholder="Nota Fiscal" />
             </SelectTrigger>
             <SelectContent>
@@ -210,12 +214,12 @@ const ConsultaPreco = () => {
       </div>
 
       {/* Product List */}
-      <div className="container py-4">
+      <div className="container py-3 sm:py-4">
         {produtosFiltrados.length === 0 ? (
-          <div className="text-center py-12">
-            <Search className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-            <p className="text-muted-foreground">Nenhum produto encontrado</p>
-            <p className="text-sm text-muted-foreground mt-1">
+          <div className="text-center py-8 sm:py-12">
+            <Search className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/50 mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm sm:text-base">Nenhum produto encontrado</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Importe NFes para começar a consultar preços
             </p>
           </div>
@@ -247,44 +251,61 @@ const ConsultaPreco = () => {
 function ProdutoCard({ produto }: { produto: Produto }) {
   const navigate = useNavigate();
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
 
   const ultimoPedido = produto.historicoPedidos[produto.historicoPedidos.length - 1];
-  const valorUnitario = ultimoPedido
-    ? produto.quantidadeEmbalagem
-      ? ultimoPedido.valorUnitario / produto.quantidadeEmbalagem
-      : ultimoPedido.valorUnitario
-    : 0;
+  
+  // Usar valor unitário real (com despesas) se disponível
+  const valorUnitarioBase = ultimoPedido?.valorUnitarioReal || ultimoPedido?.valorUnitario || 0;
+  const valorUnitario = produto.quantidadeEmbalagem
+    ? valorUnitarioBase / produto.quantidadeEmbalagem
+    : valorUnitarioBase;
+
+  const handlePriceClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (ultimoPedido?.despesas) {
+      setShowPriceBreakdown(true);
+    }
+  };
 
   return (
     <>
       <div
         onClick={() => navigate(`/produto/${produto.id}`)}
-        className="bg-card rounded-xl border border-border p-4 shadow-card hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer animate-fade-in"
+        className="bg-card rounded-xl border border-border p-3 sm:p-4 shadow-card hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer animate-fade-in"
       >
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2 sm:gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-foreground line-clamp-2 mb-1">
+            <h3 className="font-medium text-foreground line-clamp-2 mb-1 text-sm sm:text-base">
               {produto.descricao}
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
               Cód: {produto.codigo}
-              {produto.codigoBarras && ` • EAN: ${produto.codigoBarras}`}
+              {produto.codigoBarras && (
+                <span className="hidden sm:inline"> • EAN: {produto.codigoBarras}</span>
+              )}
             </p>
             {ultimoPedido && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Última compra: {formatDate(new Date(ultimoPedido.data))}</span>
-                <span>•</span>
-                <span>{ultimoPedido.fornecedorNome}</span>
+              <div className="flex items-center gap-1 sm:gap-2 text-xs text-muted-foreground flex-wrap">
+                <span>{formatDate(new Date(ultimoPedido.data))}</span>
+                <span className="hidden sm:inline">•</span>
+                <span className="hidden sm:inline truncate max-w-[150px]">{ultimoPedido.fornecedorNome}</span>
               </div>
             )}
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-lg font-bold text-primary">
-              {formatCurrency(valorUnitario)}
-            </p>
+            <div 
+              className="cursor-pointer hover:bg-primary/10 rounded p-1 -m-1 transition-colors"
+              onClick={handlePriceClick}
+            >
+              <p className="text-base sm:text-lg font-bold text-primary flex items-center justify-end gap-1">
+                {formatCurrency(valorUnitario)}
+                {ultimoPedido?.despesas && <Info className="w-3 h-3 text-primary/60" />}
+              </p>
+            </div>
             {produto.quantidadeEmbalagem && (
               <p className="text-xs text-muted-foreground">
-                por unidade ({produto.quantidadeEmbalagem} un/cx)
+                por un. ({produto.quantidadeEmbalagem}/cx)
               </p>
             )}
             <p className="text-xs text-muted-foreground">
@@ -300,7 +321,7 @@ function ProdutoCard({ produto }: { produto: Produto }) {
               e.stopPropagation();
               setShowCalculator(true);
             }}
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary h-8 px-2"
           >
             <Calculator className="w-4 h-4" />
           </Button>
@@ -309,6 +330,16 @@ function ProdutoCard({ produto }: { produto: Produto }) {
 
       {showCalculator && (
         <CalculatorModal onClose={() => setShowCalculator(false)} />
+      )}
+
+      {showPriceBreakdown && ultimoPedido?.despesas && (
+        <PriceBreakdown
+          valorUnitarioReal={ultimoPedido.valorUnitarioReal || ultimoPedido.valorUnitario}
+          quantidade={ultimoPedido.quantidade}
+          despesas={ultimoPedido.despesas}
+          quantidadeEmbalagem={produto.quantidadeEmbalagem}
+          onClose={() => setShowPriceBreakdown(false)}
+        />
       )}
     </>
   );
