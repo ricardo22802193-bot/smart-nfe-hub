@@ -44,6 +44,19 @@ export interface Produto {
   quantidadeEmbalagem?: number;
 }
 
+export interface DespesasProduto {
+  valorProduto: number;      // Valor do produto sem impostos
+  valorFrete: number;        // Frete rateado
+  valorSeguro: number;       // Seguro rateado
+  valorDesconto: number;     // Desconto
+  valorOutrasDespesas: number; // Outras despesas rateadas
+  valorIPI: number;          // IPI
+  valorICMS: number;         // ICMS
+  valorPIS: number;          // PIS
+  valorCOFINS: number;       // COFINS
+  valorICMSST: number;       // ICMS-ST
+}
+
 export interface ProdutoNFe {
   id: string;
   produtoId: string;
@@ -55,6 +68,9 @@ export interface ProdutoNFe {
   valorUnitario: number;
   valorTotal: number;
   valorImposto: number;
+  valorTotalComDespesas: number; // Valor total real (produto + impostos + despesas)
+  valorUnitarioReal: number;     // Valor unitário real com tudo incluso
+  despesas: DespesasProduto;
   ncm?: string;
   cfop?: string;
   quantidadeEmbalagem?: number;
@@ -71,6 +87,9 @@ export interface HistoricoPedido {
   valorUnitario: number;
   valorTotal: number;
   valorImposto: number;
+  valorTotalComDespesas: number;
+  valorUnitarioReal: number;
+  despesas: DespesasProduto;
   quantidadeEmbalagem?: number;
 }
 

@@ -72,6 +72,9 @@ export const useNFeStore = create<NFeStore>()(
             valorUnitario: prodNfe.valorUnitario,
             valorTotal: prodNfe.valorTotal,
             valorImposto: prodNfe.valorImposto,
+            valorTotalComDespesas: prodNfe.valorTotalComDespesas,
+            valorUnitarioReal: prodNfe.valorUnitarioReal,
+            despesas: prodNfe.despesas,
             quantidadeEmbalagem: prodNfe.quantidadeEmbalagem,
           };
           get().addHistoricoProduto(produto.id, historico);

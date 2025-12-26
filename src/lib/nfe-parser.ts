@@ -1,4 +1,4 @@
-import { NFe, ProdutoNFe, Fornecedor } from "@/types/nfe";
+import { NFe, ProdutoNFe, Fornecedor, DespesasProduto } from "@/types/nfe";
 import { v4 as uuidv4 } from "uuid";
 
 export function parseNFeXML(xmlString: string): NFe | null {
@@ -40,6 +40,14 @@ export function parseNFeXML(xmlString: string): NFe | null {
       totalCompras: 0,
     };
 
+    // Totais da NFe para cálculo do rateio
+    const ICMSTot = xmlDoc.querySelector("ICMSTot");
+    const valorTotalProdutos = parseFloat(getTextContent(ICMSTot, "vProd") || "0");
+    const valorFreteTotal = parseFloat(getTextContent(ICMSTot, "vFrete") || "0");
+    const valorSeguroTotal = parseFloat(getTextContent(ICMSTot, "vSeg") || "0");
+    const valorDescontoTotal = parseFloat(getTextContent(ICMSTot, "vDesc") || "0");
+    const valorOutrasDespesasTotal = parseFloat(getTextContent(ICMSTot, "vOutro") || "0");
+
     // Produtos
     const detElements = xmlDoc.querySelectorAll("det");
     const produtos: ProdutoNFe[] = [];
@@ -49,9 +57,47 @@ export function parseNFeXML(xmlString: string): NFe | null {
       const imposto = det.querySelector("imposto");
       
       if (prod) {
-        const valorImposto = calcularImpostos(imposto);
         const quantidade = parseFloat(getTextContent(prod, "qCom") || "0");
         const valorUnitario = parseFloat(getTextContent(prod, "vUnCom") || "0");
+        const valorProduto = parseFloat(getTextContent(prod, "vProd") || "0");
+        
+        // Frete, seguro, desconto e outras despesas do item
+        let valorFrete = parseFloat(getTextContent(prod, "vFrete") || "0");
+        let valorSeguro = parseFloat(getTextContent(prod, "vSeg") || "0");
+        let valorDesconto = parseFloat(getTextContent(prod, "vDesc") || "0");
+        let valorOutrasDespesas = parseFloat(getTextContent(prod, "vOutro") || "0");
+        
+        // Se não tiver no item, faz rateio proporcional pelo valor total de produtos
+        if (valorFreteTotal > 0 && valorFrete === 0 && valorTotalProdutos > 0) {
+          valorFrete = (valorProduto / valorTotalProdutos) * valorFreteTotal;
+        }
+        if (valorSeguroTotal > 0 && valorSeguro === 0 && valorTotalProdutos > 0) {
+          valorSeguro = (valorProduto / valorTotalProdutos) * valorSeguroTotal;
+        }
+        if (valorDescontoTotal > 0 && valorDesconto === 0 && valorTotalProdutos > 0) {
+          valorDesconto = (valorProduto / valorTotalProdutos) * valorDescontoTotal;
+        }
+        if (valorOutrasDespesasTotal > 0 && valorOutrasDespesas === 0 && valorTotalProdutos > 0) {
+          valorOutrasDespesas = (valorProduto / valorTotalProdutos) * valorOutrasDespesasTotal;
+        }
+        
+        // Impostos detalhados
+        const impostos = calcularImpostosDetalhados(imposto);
+        
+        const despesas: DespesasProduto = {
+          valorProduto,
+          valorFrete,
+          valorSeguro,
+          valorDesconto,
+          valorOutrasDespesas,
+          ...impostos,
+        };
+        
+        // Valor total real = produto + frete + seguro + outras despesas + impostos (IPI e ICMS-ST) - desconto
+        const valorTotalComDespesas = valorProduto + valorFrete + valorSeguro + valorOutrasDespesas 
+          + impostos.valorIPI + impostos.valorICMSST - valorDesconto;
+        
+        const valorUnitarioReal = quantidade > 0 ? valorTotalComDespesas / quantidade : 0;
         
         produtos.push({
           id: uuidv4(),
@@ -62,8 +108,11 @@ export function parseNFeXML(xmlString: string): NFe | null {
           unidade: getTextContent(prod, "uCom") || "",
           quantidade,
           valorUnitario,
-          valorTotal: parseFloat(getTextContent(prod, "vProd") || "0"),
-          valorImposto,
+          valorTotal: valorProduto,
+          valorImposto: impostos.valorIPI + impostos.valorICMS + impostos.valorPIS + impostos.valorCOFINS + impostos.valorICMSST,
+          valorTotalComDespesas,
+          valorUnitarioReal,
+          despesas,
           ncm: getTextContent(prod, "NCM") || undefined,
           cfop: getTextContent(prod, "CFOP") || undefined,
         });
@@ -71,7 +120,6 @@ export function parseNFeXML(xmlString: string): NFe | null {
     });
 
     // Totais
-    const ICMSTot = xmlDoc.querySelector("ICMSTot");
     const valorTotal = parseFloat(getTextContent(ICMSTot, "vNF") || "0");
     const valorImpostos = parseFloat(getTextContent(ICMSTot, "vTotTrib") || "0");
 
@@ -111,40 +159,58 @@ function formatEndereco(endereco: Element | null | undefined): string {
   return [logradouro, numero, bairro, cidade, uf].filter(Boolean).join(", ");
 }
 
-function calcularImpostos(imposto: Element | null): number {
-  if (!imposto) return 0;
+interface ImpostosDetalhados {
+  valorIPI: number;
+  valorICMS: number;
+  valorPIS: number;
+  valorCOFINS: number;
+  valorICMSST: number;
+}
+
+function calcularImpostosDetalhados(imposto: Element | null): ImpostosDetalhados {
+  const result: ImpostosDetalhados = {
+    valorIPI: 0,
+    valorICMS: 0,
+    valorPIS: 0,
+    valorCOFINS: 0,
+    valorICMSST: 0,
+  };
   
-  let total = 0;
+  if (!imposto) return result;
   
   // ICMS
   const icms = imposto.querySelector("ICMS");
   if (icms) {
     const vICMS = getTextContent(icms, "vICMS");
-    if (vICMS) total += parseFloat(vICMS);
+    if (vICMS) result.valorICMS = parseFloat(vICMS);
+    
+    // ICMS-ST
+    const vICMSST = getTextContent(icms, "vICMSST");
+    if (vICMSST) result.valorICMSST = parseFloat(vICMSST);
   }
   
   // IPI
   const ipi = imposto.querySelector("IPI");
   if (ipi) {
     const vIPI = getTextContent(ipi, "vIPI");
-    if (vIPI) total += parseFloat(vIPI);
+    if (vIPI) result.valorIPI = parseFloat(vIPI);
   }
   
   // PIS
   const pis = imposto.querySelector("PIS");
   if (pis) {
     const vPIS = getTextContent(pis, "vPIS");
-    if (vPIS) total += parseFloat(vPIS);
+    if (vPIS) result.valorPIS = parseFloat(vPIS);
   }
   
   // COFINS
   const cofins = imposto.querySelector("COFINS");
   if (cofins) {
     const vCOFINS = getTextContent(cofins, "vCOFINS");
-    if (vCOFINS) total += parseFloat(vCOFINS);
+    if (vCOFINS) result.valorCOFINS = parseFloat(vCOFINS);
   }
   
-  return total;
+  return result;
 }
 
 export function formatCurrency(value: number): string {
