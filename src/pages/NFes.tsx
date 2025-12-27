@@ -1,12 +1,15 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Calendar, Building2 } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNFeStore } from "@/store/nfe-store";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
+import { NFe } from "@/types/nfe";
 
 const NFes = () => {
   const navigate = useNavigate();
   const { nfes, getTotalCompras } = useNFeStore();
+  const [selectedNFe, setSelectedNFe] = useState<NFe | null>(null);
 
   const nfesOrdenadas = [...nfes].sort(
     (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
@@ -61,9 +64,10 @@ const NFes = () => {
         ) : (
           <div className="space-y-3">
             {nfesOrdenadas.map((nfe, index) => (
-              <div
+              <button
                 key={nfe.id}
-                className="bg-card rounded-xl border border-border p-4 shadow-card animate-slide-up"
+                onClick={() => setSelectedNFe(nfe)}
+                className="w-full bg-card rounded-xl border border-border p-4 shadow-card hover:shadow-lg hover:border-primary/30 transition-all animate-slide-up text-left"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className="flex items-start gap-4">
@@ -97,12 +101,106 @@ const NFes = () => {
                       </div>
                     </div>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-2" />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal de Produtos da NFe */}
+      {selectedNFe && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" 
+          onClick={() => setSelectedNFe(null)}
+        >
+          <div 
+            className="bg-card w-full sm:w-auto sm:min-w-[500px] sm:max-w-2xl rounded-t-2xl sm:rounded-2xl shadow-2xl animate-slide-up max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl gradient-accent flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">NFe {selectedNFe.numero}</h2>
+                  <p className="text-sm text-muted-foreground">{selectedNFe.produtos.length} produto(s)</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNFe(null)}
+                className="p-2 rounded-full hover:bg-muted transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Info da NFe */}
+            <div className="p-4 bg-secondary/30 border-b border-border">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Fornecedor</p>
+                  <p className="font-medium text-foreground truncate">{selectedNFe.fornecedor.razaoSocial}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Data</p>
+                  <p className="font-medium text-foreground">{formatDate(new Date(selectedNFe.dataEmissao))}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Impostos</p>
+                  <p className="font-medium text-foreground">{formatCurrency(selectedNFe.valorImpostos)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Total</p>
+                  <p className="font-bold text-primary">{formatCurrency(selectedNFe.valorTotal)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de Produtos */}
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="space-y-3">
+                {selectedNFe.produtos.map((produto, index) => (
+                  <div
+                    key={produto.id}
+                    className="bg-secondary/30 rounded-xl p-4 border border-border/50 animate-fade-in"
+                    style={{ animationDelay: `${index * 30}ms` }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg gradient-warning flex items-center justify-center flex-shrink-0">
+                        <Package className="w-5 h-5 text-warning-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-foreground text-sm leading-tight">
+                          {produto.descricao}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Código: {produto.codigo}
+                          {produto.codigoBarras && ` | EAN: ${produto.codigoBarras}`}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-xs">
+                          <span className="text-muted-foreground">
+                            Qtd: <span className="text-foreground font-medium">{produto.quantidade} {produto.unidade}</span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Unit: <span className="text-foreground font-medium">{formatCurrency(produto.valorUnitarioReal || produto.valorUnitario)}</span>
+                          </span>
+                          <span className="text-muted-foreground">
+                            Total: <span className="text-primary font-bold">{formatCurrency(produto.valorTotalComDespesas || produto.valorTotal)}</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
