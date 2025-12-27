@@ -31,6 +31,19 @@ const PriceBreakdown = ({
     despesas.valorSeguro + despesas.valorOutrasDespesas + despesas.valorIPI + 
     despesas.valorICMSST - despesas.valorDesconto;
 
+  // Calcular valores unitários (dividido pela quantidade)
+  const valorProdutoUnit = despesas.valorProduto / quantidade;
+  const valorFreteUnit = despesas.valorFrete / quantidade;
+  const valorSeguroUnit = despesas.valorSeguro / quantidade;
+  const valorOutrasDespesasUnit = despesas.valorOutrasDespesas / quantidade;
+  const valorIPIUnit = despesas.valorIPI / quantidade;
+  const valorICMSSTUnit = despesas.valorICMSST / quantidade;
+  const valorDescontoUnit = despesas.valorDesconto / quantidade;
+  const valorICMSUnit = despesas.valorICMS / quantidade;
+  const valorPISUnit = despesas.valorPIS / quantidade;
+  const valorCOFINSUnit = despesas.valorCOFINS / quantidade;
+  const totalImpostosUnit = totalImpostos / quantidade;
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div 
@@ -79,7 +92,10 @@ const PriceBreakdown = ({
                   <p className="text-sm text-foreground">Valor do Produto</p>
                   <p className="text-xs text-muted-foreground">Valor base sem impostos</p>
                 </div>
-                <span className="font-medium text-foreground">{formatCurrency(despesas.valorProduto)}</span>
+                <div className="text-right">
+                  <span className="font-medium text-foreground">{formatCurrency(valorProdutoUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorProduto)}</p>
+                </div>
               </div>
 
               {/* Frete */}
@@ -89,7 +105,10 @@ const PriceBreakdown = ({
                     <p className="text-sm text-foreground">Frete</p>
                     <p className="text-xs text-muted-foreground">Custo de transporte</p>
                   </div>
-                  <span className="font-medium text-warning">+{formatCurrency(despesas.valorFrete)}</span>
+                  <div className="text-right">
+                    <span className="font-medium text-warning">+{formatCurrency(valorFreteUnit)}</span>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorFrete)}</p>
+                  </div>
                 </div>
               )}
 
@@ -100,7 +119,10 @@ const PriceBreakdown = ({
                     <p className="text-sm text-foreground">Seguro</p>
                     <p className="text-xs text-muted-foreground">Seguro da mercadoria</p>
                   </div>
-                  <span className="font-medium text-warning">+{formatCurrency(despesas.valorSeguro)}</span>
+                  <div className="text-right">
+                    <span className="font-medium text-warning">+{formatCurrency(valorSeguroUnit)}</span>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorSeguro)}</p>
+                  </div>
                 </div>
               )}
 
@@ -111,7 +133,10 @@ const PriceBreakdown = ({
                     <p className="text-sm text-foreground">Outras Despesas</p>
                     <p className="text-xs text-muted-foreground">Despesas acessórias</p>
                   </div>
-                  <span className="font-medium text-warning">+{formatCurrency(despesas.valorOutrasDespesas)}</span>
+                  <div className="text-right">
+                    <span className="font-medium text-warning">+{formatCurrency(valorOutrasDespesasUnit)}</span>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorOutrasDespesas)}</p>
+                  </div>
                 </div>
               )}
 
@@ -122,7 +147,10 @@ const PriceBreakdown = ({
                     <p className="text-sm text-foreground">IPI</p>
                     <p className="text-xs text-muted-foreground">Imposto s/ Prod. Industrializados</p>
                   </div>
-                  <span className="font-medium text-destructive">+{formatCurrency(despesas.valorIPI)}</span>
+                  <div className="text-right">
+                    <span className="font-medium text-destructive">+{formatCurrency(valorIPIUnit)}</span>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorIPI)}</p>
+                  </div>
                 </div>
               )}
 
@@ -133,7 +161,10 @@ const PriceBreakdown = ({
                     <p className="text-sm text-foreground">ICMS-ST</p>
                     <p className="text-xs text-muted-foreground">Substituição Tributária</p>
                   </div>
-                  <span className="font-medium text-destructive">+{formatCurrency(despesas.valorICMSST)}</span>
+                  <div className="text-right">
+                    <span className="font-medium text-destructive">+{formatCurrency(valorICMSSTUnit)}</span>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorICMSST)}</p>
+                  </div>
                 </div>
               )}
 
@@ -144,17 +175,23 @@ const PriceBreakdown = ({
                     <p className="text-sm text-foreground">Desconto</p>
                     <p className="text-xs text-muted-foreground">Desconto aplicado</p>
                   </div>
-                  <span className="font-medium text-success">-{formatCurrency(despesas.valorDesconto)}</span>
+                  <div className="text-right">
+                    <span className="font-medium text-success">-{formatCurrency(valorDescontoUnit)}</span>
+                    <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorDesconto)}</p>
+                  </div>
                 </div>
               )}
 
               {/* Total Pago */}
               <div className="flex justify-between items-center py-3 bg-primary/10 rounded-lg px-3 mt-2">
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Total Pago</p>
+                  <p className="text-sm font-semibold text-foreground">Valor Unitário</p>
                   <p className="text-xs text-muted-foreground">{quantidade} unidade(s)</p>
                 </div>
-                <span className="font-bold text-lg text-primary">{formatCurrency(valorTotalComDespesas)}</span>
+                <div className="text-right">
+                  <span className="font-bold text-lg text-primary">{formatCurrency(valorUnitarioReal)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(valorTotalComDespesas)}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -178,27 +215,45 @@ const PriceBreakdown = ({
             <div className="bg-muted/30 rounded-lg p-3 space-y-2 animate-fade-in">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">ICMS</span>
-                <span className="text-foreground">{formatCurrency(despesas.valorICMS)}</span>
+                <div className="text-right">
+                  <span className="text-foreground">{formatCurrency(valorICMSUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorICMS)}</p>
+                </div>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">ICMS-ST</span>
-                <span className="text-foreground">{formatCurrency(despesas.valorICMSST)}</span>
+                <div className="text-right">
+                  <span className="text-foreground">{formatCurrency(valorICMSSTUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorICMSST)}</p>
+                </div>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">IPI</span>
-                <span className="text-foreground">{formatCurrency(despesas.valorIPI)}</span>
+                <div className="text-right">
+                  <span className="text-foreground">{formatCurrency(valorIPIUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorIPI)}</p>
+                </div>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">PIS</span>
-                <span className="text-foreground">{formatCurrency(despesas.valorPIS)}</span>
+                <div className="text-right">
+                  <span className="text-foreground">{formatCurrency(valorPISUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorPIS)}</p>
+                </div>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">COFINS</span>
-                <span className="text-foreground">{formatCurrency(despesas.valorCOFINS)}</span>
+                <div className="text-right">
+                  <span className="text-foreground">{formatCurrency(valorCOFINSUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(despesas.valorCOFINS)}</p>
+                </div>
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-border/50 font-medium">
-                <span className="text-foreground">Total de Impostos</span>
-                <span className="text-primary">{formatCurrency(totalImpostos)}</span>
+                <span className="text-foreground">Total de Impostos (unit.)</span>
+                <div className="text-right">
+                  <span className="text-primary">{formatCurrency(totalImpostosUnit)}</span>
+                  <p className="text-xs text-muted-foreground">Total: {formatCurrency(totalImpostos)}</p>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 * ICMS e PIS/COFINS geralmente já estão inclusos no valor do produto. 
