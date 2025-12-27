@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNFeStore } from "@/store/nfe-store";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
@@ -14,6 +14,30 @@ const NFes = () => {
   const nfesOrdenadas = [...nfes].sort(
     (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
   );
+
+  // Dashboard do mês atual
+  const dashboardMes = useMemo(() => {
+    const hoje = new Date();
+    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+
+    const nfesDoMes = nfes.filter(nfe => {
+      const dataNfe = new Date(nfe.dataEmissao);
+      return dataNfe >= inicioMes && dataNfe <= fimMes;
+    });
+
+    const fornecedoresDoMes = new Set(nfesDoMes.map(nfe => nfe.fornecedor.id));
+    const totalComprasMes = nfesDoMes.reduce((acc, nfe) => acc + nfe.valorTotal, 0);
+
+    const mesNome = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+    return {
+      mesNome: mesNome.charAt(0).toUpperCase() + mesNome.slice(1),
+      quantidadeNfes: nfesDoMes.length,
+      quantidadeFornecedores: fornecedoresDoMes.size,
+      totalCompras: totalComprasMes
+    };
+  }, [nfes]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,10 +63,47 @@ const NFes = () => {
         </div>
       </header>
 
-      {/* Total */}
       <div className="container py-4">
+        {/* Dashboard do Mês */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-medium text-foreground">{dashboardMes.mesNome}</h2>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-card rounded-xl border border-border p-4 shadow-card">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-accent-foreground" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{dashboardMes.quantidadeNfes}</p>
+              <p className="text-xs text-muted-foreground">NFe(s)</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 shadow-card">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg gradient-success flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-success-foreground" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-foreground">{dashboardMes.quantidadeFornecedores}</p>
+              <p className="text-xs text-muted-foreground">Empresa(s)</p>
+            </div>
+            <div className="bg-card rounded-xl border border-border p-4 shadow-card">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 text-primary-foreground" />
+                </div>
+              </div>
+              <p className="text-lg font-bold text-primary truncate">{formatCurrency(dashboardMes.totalCompras)}</p>
+              <p className="text-xs text-muted-foreground">Total</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Geral */}
         <div className="gradient-primary rounded-xl p-6 mb-6 animate-fade-in">
-          <p className="text-sm text-primary-foreground/80 mb-1">Total em Compras</p>
+          <p className="text-sm text-primary-foreground/80 mb-1">Total em Compras (Geral)</p>
           <p className="text-3xl font-bold text-primary-foreground">
             {formatCurrency(getTotalCompras())}
           </p>
