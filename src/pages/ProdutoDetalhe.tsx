@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Package, TrendingUp, TrendingDown, Calculator, Edit2, Save, X, History, FileText, Building2, Info } from "lucide-react";
+import { ArrowLeft, Package, TrendingUp, TrendingDown, Calculator, Edit2, Save, X, History, FileText, Building2, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNFeStore } from "@/store/nfe-store";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { HistoricoPedido } from "@/types/nfe";
 import CalculatorModal from "@/components/CalculatorModal";
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const ProdutoDetalhe = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { produtos, updateQuantidadeEmbalagem } = useNFeStore();
+  const { produtos, updateQuantidadeEmbalagem, loading } = useSupabaseData();
 
   const produto = produtos.find((p) => p.id === id);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -22,6 +22,14 @@ const ProdutoDetalhe = () => {
   const [quantidadeEmbalagem, setQuantidadeEmbalagem] = useState(
     produto?.quantidadeEmbalagem?.toString() || ""
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!produto) {
     return (
@@ -63,13 +71,13 @@ const ProdutoDetalhe = () => {
     ? ((valorUnitarioAtual - valorUnitarioAnterior) / valorUnitarioAnterior) * 100
     : null;
 
-  const handleSaveEmbalagem = () => {
+  const handleSaveEmbalagem = async () => {
     const quantidade = parseInt(quantidadeEmbalagem);
     if (isNaN(quantidade) || quantidade < 1) {
       toast.error("Quantidade inválida");
       return;
     }
-    updateQuantidadeEmbalagem(produto.id, quantidade);
+    await updateQuantidadeEmbalagem(produto.id, quantidade);
     setEditingEmbalagem(false);
     toast.success("Quantidade por embalagem atualizada");
   };

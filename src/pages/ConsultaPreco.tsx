@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info } from "lucide-react";
+import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useNFeStore } from "@/store/nfe-store";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { Produto, HistoricoPedido } from "@/types/nfe";
 import CalculatorModal from "@/components/CalculatorModal";
@@ -21,7 +21,7 @@ interface FiltrosProduto {
 
 const ConsultaPreco = () => {
   const navigate = useNavigate();
-  const { produtos, fornecedores, nfes, getProdutoByCodigoBarras } = useNFeStore();
+  const { produtos, fornecedores, nfes, getProdutoByCodigoBarras, loading } = useSupabaseData();
   const [showScanner, setShowScanner] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
   const [filtros, setFiltros] = useState<FiltrosProduto>({
@@ -99,6 +99,14 @@ const ConsultaPreco = () => {
   };
 
   const hasFilters = filtros.fornecedorId || filtros.nfeId || filtros.dataInicio || filtros.dataFim;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,11 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Search, FileText, Users, Settings, Package } from "lucide-react";
-import { useNFeStore } from "@/store/nfe-store";
-import { formatCurrency } from "@/lib/nfe-parser";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { nfes, fornecedores, produtos, getTotalCompras } = useNFeStore();
+  const { nfes, fornecedores } = useSupabaseData();
 
   const menuItems = [
     {
@@ -55,20 +54,8 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Stats */}
+      {/* Menu Grid */}
       <div className="container py-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard
-            label="Total em Compras"
-            value={formatCurrency(getTotalCompras())}
-            highlight
-          />
-          <StatCard label="NFes Importadas" value={nfes.length.toString()} />
-          <StatCard label="Produtos" value={produtos.length.toString()} />
-          <StatCard label="Fornecedores" value={fornecedores.length.toString()} />
-        </div>
-
-        {/* Menu Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {menuItems.map((item) => (
             <button
@@ -96,18 +83,5 @@ const Index = () => {
     </div>
   );
 };
-
-function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className={`rounded-xl p-4 ${highlight ? 'gradient-primary text-primary-foreground' : 'bg-card border border-border'} shadow-card animate-slide-up`}>
-      <p className={`text-xs font-medium ${highlight ? 'text-primary-foreground/80' : 'text-muted-foreground'} mb-1`}>
-        {label}
-      </p>
-      <p className={`text-xl font-bold ${highlight ? 'text-primary-foreground' : 'text-foreground'}`}>
-        {value}
-      </p>
-    </div>
-  );
-}
 
 export default Index;

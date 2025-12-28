@@ -1,0 +1,22 @@
+# Render Blueprint - Configuração para deploy
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: gestao-nfe
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://bvizewpcqveptzqkrquc.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2aXpld3BjcXZlcHR6cWtycXVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY4NzY5MjgsImV4cCI6MjA4MjQ1MjkyOH0.7P7AwQqtdQSWJ91dBgAu8H9QZJtPCVbbwFg5nkIi2Pw
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
