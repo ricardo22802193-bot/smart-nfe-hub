@@ -1,16 +1,24 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, Building2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Users, Building2, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNFeStore } from "@/store/nfe-store";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency } from "@/lib/nfe-parser";
 
 const Fornecedores = () => {
   const navigate = useNavigate();
-  const { fornecedores } = useNFeStore();
+  const { fornecedores, loading } = useSupabaseData();
 
   const fornecedoresOrdenados = [...fornecedores].sort(
     (a, b) => b.totalCompras - a.totalCompras
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

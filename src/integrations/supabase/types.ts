@@ -14,7 +14,383 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      contatos: {
+        Row: {
+          cargo: string | null
+          created_at: string
+          email: string | null
+          fornecedor_id: string
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string
+          email?: string | null
+          fornecedor_id: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string
+          email?: string | null
+          fornecedor_id?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contatos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fornecedores: {
+        Row: {
+          cnpj: string
+          created_at: string
+          endereco: string | null
+          id: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          razao_social: string
+          telefone: string | null
+          total_compras: number
+          updated_at: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social: string
+          telefone?: string | null
+          total_compras?: number
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string
+          telefone?: string | null
+          total_compras?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      historico_pedidos: {
+        Row: {
+          created_at: string
+          data: string
+          despesa_valor_cofins: number
+          despesa_valor_desconto: number
+          despesa_valor_frete: number
+          despesa_valor_icms: number
+          despesa_valor_icms_st: number
+          despesa_valor_ipi: number
+          despesa_valor_outras: number
+          despesa_valor_pis: number
+          despesa_valor_produto: number
+          despesa_valor_seguro: number
+          fornecedor_id: string
+          fornecedor_nome: string
+          id: string
+          nfe_id: string
+          nfe_numero: string
+          produto_id: string
+          quantidade: number
+          quantidade_embalagem: number | null
+          valor_imposto: number
+          valor_total: number
+          valor_total_com_despesas: number
+          valor_unitario: number
+          valor_unitario_real: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          despesa_valor_cofins?: number
+          despesa_valor_desconto?: number
+          despesa_valor_frete?: number
+          despesa_valor_icms?: number
+          despesa_valor_icms_st?: number
+          despesa_valor_ipi?: number
+          despesa_valor_outras?: number
+          despesa_valor_pis?: number
+          despesa_valor_produto?: number
+          despesa_valor_seguro?: number
+          fornecedor_id: string
+          fornecedor_nome: string
+          id?: string
+          nfe_id: string
+          nfe_numero: string
+          produto_id: string
+          quantidade: number
+          quantidade_embalagem?: number | null
+          valor_imposto?: number
+          valor_total: number
+          valor_total_com_despesas: number
+          valor_unitario: number
+          valor_unitario_real: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          despesa_valor_cofins?: number
+          despesa_valor_desconto?: number
+          despesa_valor_frete?: number
+          despesa_valor_icms?: number
+          despesa_valor_icms_st?: number
+          despesa_valor_ipi?: number
+          despesa_valor_outras?: number
+          despesa_valor_pis?: number
+          despesa_valor_produto?: number
+          despesa_valor_seguro?: number
+          fornecedor_id?: string
+          fornecedor_nome?: string
+          id?: string
+          nfe_id?: string
+          nfe_numero?: string
+          produto_id?: string
+          quantidade?: number
+          quantidade_embalagem?: number | null
+          valor_imposto?: number
+          valor_total?: number
+          valor_total_com_despesas?: number
+          valor_unitario?: number
+          valor_unitario_real?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_pedidos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_pedidos_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_pedidos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfe_produtos: {
+        Row: {
+          cfop: string | null
+          codigo: string
+          codigo_barras: string | null
+          created_at: string
+          descricao: string
+          despesa_valor_cofins: number
+          despesa_valor_desconto: number
+          despesa_valor_frete: number
+          despesa_valor_icms: number
+          despesa_valor_icms_st: number
+          despesa_valor_ipi: number
+          despesa_valor_outras: number
+          despesa_valor_pis: number
+          despesa_valor_produto: number
+          despesa_valor_seguro: number
+          id: string
+          ncm: string | null
+          nfe_id: string
+          produto_id: string
+          quantidade: number
+          quantidade_embalagem: number | null
+          unidade: string
+          valor_imposto: number
+          valor_total: number
+          valor_total_com_despesas: number
+          valor_unitario: number
+          valor_unitario_real: number
+        }
+        Insert: {
+          cfop?: string | null
+          codigo: string
+          codigo_barras?: string | null
+          created_at?: string
+          descricao: string
+          despesa_valor_cofins?: number
+          despesa_valor_desconto?: number
+          despesa_valor_frete?: number
+          despesa_valor_icms?: number
+          despesa_valor_icms_st?: number
+          despesa_valor_ipi?: number
+          despesa_valor_outras?: number
+          despesa_valor_pis?: number
+          despesa_valor_produto?: number
+          despesa_valor_seguro?: number
+          id?: string
+          ncm?: string | null
+          nfe_id: string
+          produto_id: string
+          quantidade: number
+          quantidade_embalagem?: number | null
+          unidade: string
+          valor_imposto?: number
+          valor_total: number
+          valor_total_com_despesas: number
+          valor_unitario: number
+          valor_unitario_real: number
+        }
+        Update: {
+          cfop?: string | null
+          codigo?: string
+          codigo_barras?: string | null
+          created_at?: string
+          descricao?: string
+          despesa_valor_cofins?: number
+          despesa_valor_desconto?: number
+          despesa_valor_frete?: number
+          despesa_valor_icms?: number
+          despesa_valor_icms_st?: number
+          despesa_valor_ipi?: number
+          despesa_valor_outras?: number
+          despesa_valor_pis?: number
+          despesa_valor_produto?: number
+          despesa_valor_seguro?: number
+          id?: string
+          ncm?: string | null
+          nfe_id?: string
+          produto_id?: string
+          quantidade?: number
+          quantidade_embalagem?: number | null
+          unidade?: string
+          valor_imposto?: number
+          valor_total?: number
+          valor_total_com_despesas?: number
+          valor_unitario?: number
+          valor_unitario_real?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfe_produtos_nfe_id_fkey"
+            columns: ["nfe_id"]
+            isOneToOne: false
+            referencedRelation: "nfes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfe_produtos_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nfes: {
+        Row: {
+          chave_acesso: string
+          created_at: string
+          data_emissao: string
+          fornecedor_id: string
+          id: string
+          importado_em: string
+          numero: string
+          serie: string
+          valor_impostos: number
+          valor_total: number
+          xml_original: string | null
+        }
+        Insert: {
+          chave_acesso: string
+          created_at?: string
+          data_emissao: string
+          fornecedor_id: string
+          id?: string
+          importado_em?: string
+          numero: string
+          serie: string
+          valor_impostos?: number
+          valor_total: number
+          xml_original?: string | null
+        }
+        Update: {
+          chave_acesso?: string
+          created_at?: string
+          data_emissao?: string
+          fornecedor_id?: string
+          id?: string
+          importado_em?: string
+          numero?: string
+          serie?: string
+          valor_impostos?: number
+          valor_total?: number
+          xml_original?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfes_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          codigo: string
+          codigo_barras: string | null
+          created_at: string
+          descricao: string
+          id: string
+          ncm: string | null
+          quantidade_embalagem: number | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          codigo_barras?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          ncm?: string | null
+          quantidade_embalagem?: number | null
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          codigo_barras?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          ncm?: string | null
+          quantidade_embalagem?: number | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

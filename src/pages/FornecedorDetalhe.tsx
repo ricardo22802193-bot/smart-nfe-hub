@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Building2, Phone, Mail, MessageSquare, Plus, Edit2, Trash2, Save, X, User } from "lucide-react";
+import { ArrowLeft, Building2, Phone, Mail, MessageSquare, Plus, Edit2, Trash2, Save, X, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useNFeStore } from "@/store/nfe-store";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency } from "@/lib/nfe-parser";
 import { Contato } from "@/types/nfe";
 import { v4 as uuidv4 } from "uuid";
@@ -13,7 +13,7 @@ import { toast } from "sonner";
 const FornecedorDetalhe = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { fornecedores, nfes, updateFornecedorObservacoes, addContatoFornecedor, updateContatoFornecedor, removeContatoFornecedor } = useNFeStore();
+  const { fornecedores, nfes, updateFornecedorObservacoes, addContatoFornecedor, updateContatoFornecedor, removeContatoFornecedor, loading } = useSupabaseData();
 
   const fornecedor = fornecedores.find((f) => f.id === id);
   const nfesFornecedor = nfes.filter((n) => n.fornecedor.id === id);
@@ -23,6 +23,14 @@ const FornecedorDetalhe = () => {
   const [showAddContato, setShowAddContato] = useState(false);
   const [editingContato, setEditingContato] = useState<Contato | null>(null);
   const [novoContato, setNovoContato] = useState<Partial<Contato>>({});
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!fornecedor) {
     return (
@@ -37,13 +45,13 @@ const FornecedorDetalhe = () => {
     );
   }
 
-  const handleSaveObs = () => {
-    updateFornecedorObservacoes(fornecedor.id, observacoes);
+  const handleSaveObs = async () => {
+    await updateFornecedorObservacoes(fornecedor.id, observacoes);
     setEditingObs(false);
     toast.success("Observações salvas");
   };
 
-  const handleSaveContato = () => {
+  const handleSaveContato = async () => {
     if (!novoContato.nome) {
       toast.error("Nome é obrigatório");
       return;
@@ -59,10 +67,10 @@ const FornecedorDetalhe = () => {
     };
 
     if (editingContato) {
-      updateContatoFornecedor(fornecedor.id, contato);
+      await updateContatoFornecedor(fornecedor.id, contato);
       toast.success("Contato atualizado");
     } else {
-      addContatoFornecedor(fornecedor.id, contato);
+      await addContatoFornecedor(fornecedor.id, contato);
       toast.success("Contato adicionado");
     }
 
@@ -77,8 +85,8 @@ const FornecedorDetalhe = () => {
     setShowAddContato(true);
   };
 
-  const handleDeleteContato = (contatoId: string) => {
-    removeContatoFornecedor(fornecedor.id, contatoId);
+  const handleDeleteContato = async (contatoId: string) => {
+    await removeContatoFornecedor(fornecedor.id, contatoId);
     toast.success("Contato removido");
   };
 

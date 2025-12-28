@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, CheckCircle, XCircle, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, FileText, CheckCircle, XCircle, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNFeStore } from "@/store/nfe-store";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { parseNFeXML, formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { toast } from "sonner";
 
@@ -11,7 +11,7 @@ const Configuracoes = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<{ file: string; success: boolean; message: string }[]>([]);
-  const { addNFe, nfes, removeNFe } = useNFeStore();
+  const { addNFe, nfes, removeNFe, loading } = useSupabaseData();
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -37,7 +37,7 @@ const Configuracoes = () => {
           continue;
         }
 
-        const result = addNFe(nfe);
+        const result = await addNFe(nfe);
         newResults.push({ file: file.name, success: result.success, message: result.message });
       } catch (error) {
         newResults.push({ file: file.name, success: false, message: "Erro ao ler arquivo" });
@@ -101,7 +101,11 @@ const Configuracoes = () => {
             className="hidden"
           />
           <div className="w-16 h-16 rounded-full gradient-primary mx-auto mb-4 flex items-center justify-center">
-            <Upload className="w-8 h-8 text-primary-foreground" />
+            {importing ? (
+              <Loader2 className="w-8 h-8 text-primary-foreground animate-spin" />
+            ) : (
+              <Upload className="w-8 h-8 text-primary-foreground" />
+            )}
           </div>
           <h3 className="text-lg font-semibold text-foreground mb-2">
             {importing ? "Importando..." : "Importar NFe XML"}
@@ -147,7 +151,11 @@ const Configuracoes = () => {
         )}
 
         {/* Recent NFes */}
-        {nfes.length > 0 && (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : nfes.length > 0 ? (
           <div className="bg-card rounded-xl border border-border p-4 animate-slide-up">
             <h3 className="font-semibold text-foreground mb-3">
               NFes Importadas ({nfes.length})
@@ -182,7 +190,7 @@ const Configuracoes = () => {
               ))}
             </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

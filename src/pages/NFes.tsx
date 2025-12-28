@@ -1,14 +1,14 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, Loader2, DollarSign, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useNFeStore } from "@/store/nfe-store";
+import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { NFe } from "@/types/nfe";
 
 const NFes = () => {
   const navigate = useNavigate();
-  const { nfes, getTotalCompras } = useNFeStore();
+  const { nfes, produtos, fornecedores, loading, getTotalCompras } = useSupabaseData();
   const [selectedNFe, setSelectedNFe] = useState<NFe | null>(null);
 
   const nfesOrdenadas = [...nfes].sort(
