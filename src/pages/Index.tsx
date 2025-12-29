@@ -1,10 +1,28 @@
 import { useNavigate } from "react-router-dom";
-import { Search, FileText, Users, Settings, Package } from "lucide-react";
+import { Search, FileText, Users, Settings, Package, LogOut } from "lucide-react";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
   const { nfes, fornecedores } = useSupabaseData();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao sair",
+        description: error.message,
+      });
+    } else {
+      navigate('/auth');
+    }
+  };
 
   const menuItems = [
     {
@@ -42,13 +60,29 @@ const Index = () => {
       {/* Header */}
       <header className="bg-card shadow-card border-b border-border">
         <div className="container py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-              <Package className="w-6 h-6 text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
+                <Package className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Gestão NFe</h1>
+                <p className="text-sm text-muted-foreground">Sistema de Consulta de Preços</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Gestão NFe</h1>
-              <p className="text-sm text-muted-foreground">Sistema de Consulta de Preços</p>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground hidden sm:block">
+                {user?.email}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
             </div>
           </div>
         </div>
