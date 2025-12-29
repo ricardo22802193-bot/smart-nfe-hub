@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { FileText, Loader2, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { FileText, Loader2, Mail, Lock, LogIn } from 'lucide-react';
 import { z } from 'zod';
 
 const authSchema = z.object({
@@ -15,13 +15,12 @@ const authSchema = z.object({
 });
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -57,50 +56,26 @@ const Auth = () => {
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              variant: "destructive",
-              title: "Erro ao entrar",
-              description: "Email ou senha incorretos.",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Erro ao entrar",
-              description: error.message,
-            });
-          }
+      const { error } = await signIn(email, password);
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast({
+            variant: "destructive",
+            title: "Erro ao entrar",
+            description: "Email ou senha incorretos.",
+          });
         } else {
           toast({
-            title: "Bem-vindo!",
-            description: "Login realizado com sucesso.",
+            variant: "destructive",
+            title: "Erro ao entrar",
+            description: error.message,
           });
         }
       } else {
-        const { error } = await signUp(email, password);
-        if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              variant: "destructive",
-              title: "Erro ao cadastrar",
-              description: "Este email já está cadastrado. Tente fazer login.",
-            });
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Erro ao cadastrar",
-              description: error.message,
-            });
-          }
-        } else {
-          toast({
-            title: "Conta criada!",
-            description: "Verifique seu email para confirmar o cadastro.",
-          });
-        }
+        toast({
+          title: "Bem-vindo!",
+          description: "Login realizado com sucesso.",
+        });
       }
     } finally {
       setIsSubmitting(false);
@@ -128,13 +103,9 @@ const Auth = () => {
 
         <Card className="shadow-card border-border">
           <CardHeader className="text-center pb-4">
-            <CardTitle className="text-xl">
-              {isLogin ? 'Entrar' : 'Criar Conta'}
-            </CardTitle>
+            <CardTitle className="text-xl">Entrar</CardTitle>
             <CardDescription>
-              {isLogin 
-                ? 'Digite suas credenciais para acessar' 
-                : 'Preencha os dados para criar sua conta'}
+              Digite suas credenciais para acessar
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -184,30 +155,12 @@ const Auth = () => {
               >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : isLogin ? (
-                  <LogIn className="h-4 w-4 mr-2" />
                 ) : (
-                  <UserPlus className="h-4 w-4 mr-2" />
+                  <LogIn className="h-4 w-4 mr-2" />
                 )}
-                {isLogin ? 'Entrar' : 'Criar Conta'}
+                Entrar
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setErrors({});
-                }}
-                className="text-sm text-primary hover:underline"
-                disabled={isSubmitting}
-              >
-                {isLogin 
-                  ? 'Não tem conta? Criar uma agora' 
-                  : 'Já tem conta? Entrar'}
-              </button>
-            </div>
           </CardContent>
         </Card>
       </div>
