@@ -4,6 +4,7 @@ import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import PWAInstallCard from "@/components/PWAInstallCard";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const Index = () => {
         description: error.message,
       });
     } else {
-      navigate('/auth');
+      navigate("/auth");
     }
   };
 
@@ -71,15 +72,8 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                {user?.email}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-                className="gap-2"
-              >
+              <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
+              <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
                 <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline">Sair</span>
               </Button>
@@ -88,32 +82,38 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Menu Grid */}
-      <div className="container py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {menuItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className="group relative overflow-hidden rounded-xl bg-card p-6 text-left shadow-card border border-border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 animate-fade-in"
-            >
-              <div className="flex items-start gap-4">
-                <div className={`w-14 h-14 rounded-xl ${item.color} flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110`}>
-                  <item.icon className={`w-7 h-7 ${item.color === 'bg-secondary' ? 'text-secondary-foreground' : 'text-primary-foreground'}`} />
+      <main className="container py-6 space-y-4">
+        <section aria-label="Instalar aplicativo">
+          <PWAInstallCard />
+        </section>
+
+        {/* Menu Grid */}
+        <section aria-label="Funções do sistema">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {menuItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className="group relative overflow-hidden rounded-xl bg-card p-6 text-left shadow-card border border-border transition-all duration-300 hover:shadow-lg hover:scale-[1.02] hover:border-primary/30 animate-fade-in"
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className={`w-14 h-14 rounded-xl ${item.color} flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110`}
+                  >
+                    <item.icon
+                      className={`w-7 h-7 ${item.color === "bg-secondary" ? "text-secondary-foreground" : "text-primary-foreground"}`}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-lg font-semibold text-foreground mb-1">{item.title}</h2>
+                    <p className="text-sm text-muted-foreground">{item.description}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-semibold text-foreground mb-1">
-                    {item.title}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
