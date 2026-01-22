@@ -55,10 +55,19 @@ const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
         return a * b;
       case "÷":
         return b !== 0 ? a / b : 0;
-      case "%":
-        return a * (b / 100);
       default:
         return b;
+    }
+  };
+
+  const handlePercentage = () => {
+    if (previousValue !== null && operation) {
+      const current = parseFloat(display);
+      const percentValue = previousValue * (current / 100);
+      setDisplay(formatResult(percentValue));
+    } else {
+      const current = parseFloat(display);
+      setDisplay(formatResult(current / 100));
     }
   };
 
@@ -125,8 +134,10 @@ const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
       case "-":
       case "×":
       case "÷":
-      case "%":
         handleOperation(btn);
+        break;
+      case "%":
+        handlePercentage();
         break;
       default:
         handleNumber(btn);

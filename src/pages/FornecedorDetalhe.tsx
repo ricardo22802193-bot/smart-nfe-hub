@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/nfe-parser";
 import { Contato } from "@/types/nfe";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-
+import DividaFornecedor from "@/components/DividaFornecedor";
 const FornecedorDetalhe = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -285,6 +285,9 @@ const FornecedorDetalhe = () => {
             </div>
           )}
         </div>
+
+        {/* Controle de Dívida */}
+        <DividaFornecedor fornecedorId={fornecedor.id} />
       </div>
     </div>
   );
