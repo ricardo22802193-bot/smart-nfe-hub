@@ -484,7 +484,13 @@ export const useSupabaseDataStore = create<SupabaseDataState & SupabaseDataActio
   },
 
   getProdutoByCodigoBarras: (codigoBarras: string) => {
-    return get().produtos.find((p) => p.codigoBarras === codigoBarras);
+    // Remove zeros à esquerda e espaços para comparação mais flexível
+    const cleanCode = codigoBarras.replace(/^0+/, '').trim();
+    return get().produtos.find((p) => {
+      if (!p.codigoBarras) return false;
+      const cleanProductCode = p.codigoBarras.replace(/^0+/, '').trim();
+      return p.codigoBarras === codigoBarras || cleanProductCode === cleanCode;
+    });
   },
 
   getProdutoByCodigo: (codigo: string) => {
