@@ -1,25 +1,65 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, Loader2, DollarSign, ShoppingCart } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { NFe } from "@/types/nfe";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const NFes = () => {
   const navigate = useNavigate();
   const { nfes, produtos, fornecedores, loading, getTotalCompras } = useSupabaseData();
   const [selectedNFe, setSelectedNFe] = useState<NFe | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [showTotalCompras, setShowTotalCompras] = useState(false);
+  const [showTotalMes, setShowTotalMes] = useState(false);
+
+  // Get available months from NFes
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    nfes.forEach(nfe => {
+      const date = new Date(nfe.dataEmissao);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.add(monthKey);
+    });
+    
+    // Add current month if not present
+    const hoje = new Date();
+    const currentMonthKey = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    months.add(currentMonthKey);
+    
+    return Array.from(months).sort().reverse();
+  }, [nfes]);
+
+  const formatMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const label = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+
+  const currentMonthKey = useMemo(() => {
+    const hoje = new Date();
+    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  }, []);
+
+  const activeMonthKey = selectedMonth || currentMonthKey;
 
   const nfesOrdenadas = [...nfes].sort(
     (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
   );
 
-  // Dashboard do mês atual
+  // Dashboard do mês selecionado
   const dashboardMes = useMemo(() => {
-    const hoje = new Date();
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+    const [year, month] = activeMonthKey.split('-');
+    const inicioMes = new Date(parseInt(year), parseInt(month) - 1, 1);
+    const fimMes = new Date(parseInt(year), parseInt(month), 0);
 
     const nfesDoMes = nfes.filter(nfe => {
       const dataNfe = new Date(nfe.dataEmissao);
@@ -29,15 +69,13 @@ const NFes = () => {
     const fornecedoresDoMes = new Set(nfesDoMes.map(nfe => nfe.fornecedor.id));
     const totalComprasMes = nfesDoMes.reduce((acc, nfe) => acc + nfe.valorTotal, 0);
 
-    const mesNome = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-
     return {
-      mesNome: mesNome.charAt(0).toUpperCase() + mesNome.slice(1),
+      mesNome: formatMonthLabel(activeMonthKey),
       quantidadeNfes: nfesDoMes.length,
       quantidadeFornecedores: fornecedoresDoMes.size,
       totalCompras: totalComprasMes
     };
-  }, [nfes]);
+  }, [nfes, activeMonthKey]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,46 +104,86 @@ const NFes = () => {
       <div className="container py-4">
         {/* Dashboard do Mês */}
         <div className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-medium text-foreground">{dashboardMes.mesNome}</h2>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-card rounded-xl border border-border p-4 shadow-card">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-accent-foreground" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 mb-3 hover:bg-secondary/50 px-2 py-1 rounded-lg transition-colors">
+                <Calendar className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-medium text-foreground">{dashboardMes.mesNome}</h2>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-card border border-border z-50 max-h-64 overflow-y-auto">
+              {availableMonths.map((monthKey) => (
+                <DropdownMenuItem
+                  key={monthKey}
+                  onClick={() => setSelectedMonth(monthKey === currentMonthKey ? null : monthKey)}
+                  className={activeMonthKey === monthKey ? "bg-primary/10 text-primary" : ""}
+                >
+                  {formatMonthLabel(monthKey)}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Scrollable cards on mobile */}
+          <div className="overflow-x-auto -mx-4 px-4 pb-2">
+            <div className="flex gap-3 min-w-max">
+              <div className="bg-card rounded-xl border border-border p-4 shadow-card min-w-[120px]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg gradient-accent flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-accent-foreground" />
+                  </div>
                 </div>
+                <p className="text-2xl font-bold text-foreground">{dashboardMes.quantidadeNfes}</p>
+                <p className="text-xs text-muted-foreground">NFe(s)</p>
               </div>
-              <p className="text-2xl font-bold text-foreground">{dashboardMes.quantidadeNfes}</p>
-              <p className="text-xs text-muted-foreground">NFe(s)</p>
-            </div>
-            <div className="bg-card rounded-xl border border-border p-4 shadow-card">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg gradient-success flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-success-foreground" />
+              <div className="bg-card rounded-xl border border-border p-4 shadow-card min-w-[120px]">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg gradient-success flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-success-foreground" />
+                  </div>
                 </div>
+                <p className="text-2xl font-bold text-foreground">{dashboardMes.quantidadeFornecedores}</p>
+                <p className="text-xs text-muted-foreground">Empresa(s)</p>
               </div>
-              <p className="text-2xl font-bold text-foreground">{dashboardMes.quantidadeFornecedores}</p>
-              <p className="text-xs text-muted-foreground">Empresa(s)</p>
-            </div>
-            <div className="bg-card rounded-xl border border-border p-4 shadow-card">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 text-primary-foreground" />
+              <div 
+                className="bg-card rounded-xl border border-border p-4 shadow-card min-w-[140px] cursor-pointer"
+                onClick={() => setShowTotalMes(!showTotalMes)}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  {showTotalMes ? (
+                    <EyeOff className="w-4 h-4 text-muted-foreground ml-auto" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-muted-foreground ml-auto" />
+                  )}
                 </div>
+                <p className="text-lg font-bold text-primary">
+                  {showTotalMes ? formatCurrency(dashboardMes.totalCompras) : "••••••"}
+                </p>
+                <p className="text-xs text-muted-foreground">Total</p>
               </div>
-              <p className="text-lg font-bold text-primary truncate">{formatCurrency(dashboardMes.totalCompras)}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
             </div>
           </div>
         </div>
 
         {/* Total Geral */}
-        <div className="gradient-primary rounded-xl p-6 mb-6 animate-fade-in">
-          <p className="text-sm text-primary-foreground/80 mb-1">Total em Compras (Geral)</p>
+        <div 
+          className="gradient-primary rounded-xl p-6 mb-6 animate-fade-in cursor-pointer"
+          onClick={() => setShowTotalCompras(!showTotalCompras)}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-primary-foreground/80 mb-1">Total em Compras (Geral)</p>
+            {showTotalCompras ? (
+              <EyeOff className="w-5 h-5 text-primary-foreground/80" />
+            ) : (
+              <Eye className="w-5 h-5 text-primary-foreground/80" />
+            )}
+          </div>
           <p className="text-3xl font-bold text-primary-foreground">
-            {formatCurrency(getTotalCompras())}
+            {showTotalCompras ? formatCurrency(getTotalCompras()) : "••••••"}
           </p>
         </div>
 
