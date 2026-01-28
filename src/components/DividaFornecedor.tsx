@@ -30,6 +30,7 @@ const DividaFornecedor = ({ fornecedorId }: DividaFornecedorProps) => {
   const [showHistorico, setShowHistorico] = useState(false);
   const [novoValor, setNovoValor] = useState("");
   const [novaObservacao, setNovaObservacao] = useState("");
+  const [motivoDivida, setMotivoDivida] = useState("");
 
   const saldoDevedor = valorTotal - valorPago;
 
@@ -111,8 +112,9 @@ const DividaFornecedor = ({ fornecedorId }: DividaFornecedorProps) => {
         setValorTotal(valor);
       }
 
-      toast.success("Dívida adicionada");
+      toast.success("Dívida adicionada", { duration: 1000 });
       setNovoValor("");
+      setMotivoDivida("");
       setShowAddDivida(false);
     } catch (err) {
       console.error("Erro ao adicionar dívida:", err);
@@ -156,13 +158,13 @@ const DividaFornecedor = ({ fornecedorId }: DividaFornecedorProps) => {
       ]);
       setValorPago((prev) => prev + valor);
 
-      toast.success("Pagamento registrado");
+      toast.success("Pagamento registrado", { duration: 1000 });
       setNovoValor("");
       setNovaObservacao("");
       setShowAddPagamento(false);
     } catch (err) {
       console.error("Erro ao registrar pagamento:", err);
-      toast.error("Erro ao registrar pagamento");
+      toast.error("Erro ao registrar pagamento", { duration: 1000 });
     }
   };
 
@@ -171,10 +173,10 @@ const DividaFornecedor = ({ fornecedorId }: DividaFornecedorProps) => {
       await supabase.from("pagamentos_divida" as any).delete().eq("id", pagamentoId);
       setPagamentos((prev) => prev.filter((p) => p.id !== pagamentoId));
       setValorPago((prev) => prev - valor);
-      toast.success("Pagamento removido");
+      toast.success("Pagamento removido", { duration: 1000 });
     } catch (err) {
       console.error("Erro ao remover pagamento:", err);
-      toast.error("Erro ao remover pagamento");
+      toast.error("Erro ao remover pagamento", { duration: 1000 });
     }
   };
 
@@ -279,11 +281,21 @@ const DividaFornecedor = ({ fornecedorId }: DividaFornecedorProps) => {
             value={novoValor}
             onChange={(e) => setNovoValor(e.target.value)}
           />
+          <Textarea
+            placeholder="Motivo da dívida (opcional)"
+            value={motivoDivida}
+            onChange={(e) => setMotivoDivida(e.target.value)}
+            rows={2}
+          />
           <div className="flex gap-2">
             <Button size="sm" onClick={handleAddDivida}>
               Confirmar
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowAddDivida(false)}>
+            <Button variant="outline" size="sm" onClick={() => {
+              setShowAddDivida(false);
+              setNovoValor("");
+              setMotivoDivida("");
+            }}>
               Cancelar
             </Button>
           </div>

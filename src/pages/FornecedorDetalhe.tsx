@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Building2, Phone, Mail, MessageSquare, Plus, Edit2, Trash2, Save, X, User, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, Phone, Mail, MessageSquare, Plus, Edit2, Trash2, Save, X, User, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,7 @@ const FornecedorDetalhe = () => {
   const [showAddContato, setShowAddContato] = useState(false);
   const [editingContato, setEditingContato] = useState<Contato | null>(null);
   const [novoContato, setNovoContato] = useState<Partial<Contato>>({});
+  const [showTotalCompras, setShowTotalCompras] = useState(false);
 
   if (loading) {
     return (
@@ -118,10 +119,18 @@ const FornecedorDetalhe = () => {
 
       <div className="container py-4 space-y-4">
         {/* Stats */}
-        <div className="gradient-success rounded-xl p-6 animate-fade-in">
-          <p className="text-sm text-success-foreground/80 mb-1">Total em Compras</p>
+        <div 
+          className="gradient-success rounded-xl p-6 animate-fade-in cursor-pointer select-none"
+          onClick={() => setShowTotalCompras(!showTotalCompras)}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm text-success-foreground/80">Total em Compras</p>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-success-foreground/60 hover:text-success-foreground hover:bg-success-foreground/10">
+              {showTotalCompras ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </Button>
+          </div>
           <p className="text-3xl font-bold text-success-foreground">
-            {formatCurrency(fornecedor.totalCompras)}
+            {showTotalCompras ? formatCurrency(fornecedor.totalCompras) : "••••••"}
           </p>
           <p className="text-sm text-success-foreground/70 mt-2">
             {nfesFornecedor.length} NFe(s) importada(s)
