@@ -188,27 +188,33 @@ export const useSupabaseDataStore = create<SupabaseDataState & SupabaseDataActio
     try {
       set({ loading: true, error: null });
 
+      // Fetch all fornecedores (no limit)
       const { data: fornecedoresData, error: fornecedoresError } = await supabase
         .from("fornecedores")
-        .select("*, contatos(*)");
+        .select("*, contatos(*)")
+        .range(0, 10000);
       if (fornecedoresError) throw fornecedoresError;
 
       const fornecedoresList = (fornecedoresData || []).map((f: any) =>
         dbFornecedorToFornecedor(f, (f.contatos || []).map(dbContatoToContato))
       );
 
+      // Fetch all produtos (no limit - important for barcode scanning)
       const { data: produtosData, error: produtosError } = await supabase
         .from("produtos")
-        .select("*, historico_pedidos(*)");
+        .select("*, historico_pedidos(*)")
+        .range(0, 50000);
       if (produtosError) throw produtosError;
 
       const produtosList = (produtosData || []).map((p: any) =>
         dbProdutoToProduto(p, (p.historico_pedidos || []).map(dbHistoricoToHistorico))
       );
 
+      // Fetch all NFes (no limit)
       const { data: nfesData, error: nfesError } = await supabase
         .from("nfes")
-        .select("*, nfe_produtos(*)");
+        .select("*, nfe_produtos(*)")
+        .range(0, 50000);
       if (nfesError) throw nfesError;
 
       const nfesList = (nfesData || []).map((n: any) => {
