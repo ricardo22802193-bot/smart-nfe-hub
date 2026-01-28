@@ -484,12 +484,37 @@ export const useSupabaseDataStore = create<SupabaseDataState & SupabaseDataActio
   },
 
   getProdutoByCodigoBarras: (codigoBarras: string) => {
-    // Remove zeros à esquerda e espaços para comparação mais flexível
-    const cleanCode = codigoBarras.replace(/^0+/, '').trim();
+    // Normaliza o código: remove zeros à esquerda, espaços e caracteres especiais
+    const normalizeCode = (code: string) => {
+      return code.replace(/^0+/, '').replace(/\s/g, '').trim();
+    };
+    
+    const scannedCode = codigoBarras.trim();
+    const normalizedScanned = normalizeCode(scannedCode);
+    
     return get().produtos.find((p) => {
       if (!p.codigoBarras) return false;
-      const cleanProductCode = p.codigoBarras.replace(/^0+/, '').trim();
-      return p.codigoBarras === codigoBarras || cleanProductCode === cleanCode;
+      
+      const productCode = p.codigoBarras.trim();
+      const normalizedProduct = normalizeCode(productCode);
+      
+      // Comparação exata
+      if (productCode === scannedCode) return true;
+      
+      // Comparação normalizada (sem zeros à esquerda)
+      if (normalizedProduct === normalizedScanned) return true;
+      
+      // Verifica se um contém o outro (para códigos com prefixos)
+      if (normalizedProduct.endsWith(normalizedScanned) || normalizedScanned.endsWith(normalizedProduct)) return true;
+      
+      // Para EAN-13 vs EAN-8 ou códigos com padding
+      if (normalizedProduct.length !== normalizedScanned.length) {
+        const longer = normalizedProduct.length > normalizedScanned.length ? normalizedProduct : normalizedScanned;
+        const shorter = normalizedProduct.length > normalizedScanned.length ? normalizedScanned : normalizedProduct;
+        if (longer.endsWith(shorter)) return true;
+      }
+      
+      return false;
     });
   },
 
