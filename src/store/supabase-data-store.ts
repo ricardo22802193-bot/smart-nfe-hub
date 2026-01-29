@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllFromSupabase } from "@/lib/supabase-fetch-all";
 import type {
   Contato,
   Fornecedor,
@@ -188,34 +189,37 @@ export const useSupabaseDataStore = create<SupabaseDataState & SupabaseDataActio
     try {
       set({ loading: true, error: null });
 
-      // Fetch all fornecedores (no limit)
-      const { data: fornecedoresData, error: fornecedoresError } = await supabase
-        .from("fornecedores")
-        .select("*, contatos(*)")
-        .range(0, 10000);
-      if (fornecedoresError) throw fornecedoresError;
+      // Fetch all fornecedores (paged to bypass API 1000-row cap)
+      const fornecedoresData = await fetchAllFromSupabase<any>({
+        table: "fornecedores",
+        select: "*, contatos(*)",
+        orderColumn: "id",
+        batchSize: 1000,
+      });
 
       const fornecedoresList = (fornecedoresData || []).map((f: any) =>
         dbFornecedorToFornecedor(f, (f.contatos || []).map(dbContatoToContato))
       );
 
-      // Fetch all produtos (no limit - important for barcode scanning)
-      const { data: produtosData, error: produtosError } = await supabase
-        .from("produtos")
-        .select("*, historico_pedidos(*)")
-        .range(0, 50000);
-      if (produtosError) throw produtosError;
+      // Fetch all produtos (paged to bypass API 1000-row cap - important for barcode scanning)
+      const produtosData = await fetchAllFromSupabase<any>({
+        table: "produtos",
+        select: "*, historico_pedidos(*)",
+        orderColumn: "id",
+        batchSize: 1000,
+      });
 
       const produtosList = (produtosData || []).map((p: any) =>
         dbProdutoToProduto(p, (p.historico_pedidos || []).map(dbHistoricoToHistorico))
       );
 
-      // Fetch all NFes (no limit)
-      const { data: nfesData, error: nfesError } = await supabase
-        .from("nfes")
-        .select("*, nfe_produtos(*)")
-        .range(0, 50000);
-      if (nfesError) throw nfesError;
+      // Fetch all NFes (paged to bypass API 1000-row cap)
+      const nfesData = await fetchAllFromSupabase<any>({
+        table: "nfes",
+        select: "*, nfe_produtos(*)",
+        orderColumn: "id",
+        batchSize: 1000,
+      });
 
       const nfesList = (nfesData || []).map((n: any) => {
         const fornecedor = fornecedoresList.find((f) => f.id === n.fornecedor_id) || {
