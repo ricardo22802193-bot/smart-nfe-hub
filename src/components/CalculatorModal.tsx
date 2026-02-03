@@ -13,6 +13,12 @@ interface CalcState {
   waitingForSecond: boolean;
 }
 
+const normalizeOperator = (op: string) => {
+  if (op === "x" || op === "X" || op === "*") return "×";
+  if (op === "/") return "÷";
+  return op;
+};
+
 type CalcAction =
   | { type: "DIGIT"; digit: string }
   | { type: "DECIMAL" }
@@ -31,7 +37,7 @@ const initialState: CalcState = {
 };
 
 const calculate = (a: number, b: number, op: string): number => {
-  switch (op) {
+  switch (normalizeOperator(op)) {
     case "+": return a + b;
     case "-": return a - b;
     case "×": return a * b;
@@ -76,19 +82,20 @@ function calcReducer(state: CalcState, action: CalcAction): CalcState {
 
     case "OPERATOR": {
       const currentValue = parseFloat(state.display);
+      const nextOperator = normalizeOperator(action.operator);
       
       if (state.firstOperand === null) {
         return {
           ...state,
           firstOperand: currentValue,
-          operator: action.operator,
+          operator: nextOperator,
           waitingForSecond: true,
         };
       }
       
       if (state.waitingForSecond) {
         // Just change the operator
-        return { ...state, operator: action.operator };
+        return { ...state, operator: nextOperator };
       }
       
       // Calculate pending operation
@@ -96,7 +103,7 @@ function calcReducer(state: CalcState, action: CalcAction): CalcState {
       return {
         display: formatResult(result),
         firstOperand: result,
-        operator: action.operator,
+        operator: nextOperator,
         waitingForSecond: true,
       };
     }
@@ -117,12 +124,44 @@ function calcReducer(state: CalcState, action: CalcAction): CalcState {
 
     case "PERCENT": {
       const currentValue = parseFloat(state.display);
+
       if (state.firstOperand !== null && state.operator) {
-        // Calculate percentage of first operand (e.g., 100 + 10% = 100 + 10)
-        const percentValue = state.firstOperand * (currentValue / 100);
-        return { ...state, display: formatResult(percentValue) };
+        // Contextual percent (finance-style)
+        // 10 + 20% => 12
+        // 10 - 20% => 8
+        // 10 × 20% => 2
+        // 10 ÷ 20% => 50
+        const base = state.firstOperand;
+        const ratio = currentValue / 100;
+        const op = normalizeOperator(state.operator);
+
+        let result = base;
+        switch (op) {
+          case "+":
+            result = base + base * ratio;
+            break;
+          case "-":
+            result = base - base * ratio;
+            break;
+          case "×":
+            result = base * ratio;
+            break;
+          case "÷":
+            result = ratio !== 0 ? base / ratio : 0;
+            break;
+          default:
+            result = base;
+        }
+
+        return {
+          display: formatResult(result),
+          firstOperand: null,
+          operator: null,
+          waitingForSecond: true,
+        };
       }
-      // Just divide by 100
+
+      // No operator: just divide by 100
       return { ...state, display: formatResult(currentValue / 100) };
     }
 
