@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Users, Building2, ChevronRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ const Fornecedores = () => {
   const { fornecedores, loading } = useSupabaseData();
   const [visibleTotals, setVisibleTotals] = useState<Set<string>>(new Set());
 
-  const toggleTotalVisibility = (id: string, e: React.MouseEvent) => {
+  const toggleTotalVisibility = (id: string, e: MouseEvent) => {
     e.stopPropagation();
     setVisibleTotals(prev => {
       const next = new Set(prev);
