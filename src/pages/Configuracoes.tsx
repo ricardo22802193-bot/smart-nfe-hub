@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Upload, FileText, CheckCircle, XCircle, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, FileText, CheckCircle, XCircle, Trash2, Loader2, Smartphone, Share, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { parseNFeXML, formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { toast } from "sonner";
 
@@ -12,6 +13,7 @@ const Configuracoes = () => {
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<{ file: string; success: boolean; message: string }[]>([]);
   const { addNFe, nfes, removeNFe, loading } = useSupabaseData();
+  const { isIOS, isStandalone, promptInstall, canInstall } = usePwaInstall();
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -85,6 +87,38 @@ const Configuracoes = () => {
       </header>
 
       <div className="container py-6 space-y-6">
+        {/* PWA Install Card */}
+        <div className="bg-card rounded-xl border border-border p-4 animate-fade-in">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground">Instalar Aplicativo</h3>
+              {isStandalone ? (
+                <p className="text-sm text-success">✓ App já instalado no dispositivo</p>
+              ) : isIOS ? (
+                <p className="text-sm text-muted-foreground">
+                  Toque em <Share className="w-4 h-4 inline mx-1" /> e depois "Adicionar à Tela de Início"
+                </p>
+              ) : canInstall ? (
+                <p className="text-sm text-muted-foreground">
+                  Instale o app para acesso rápido offline
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No menu do navegador <MoreVertical className="w-4 h-4 inline mx-1" /> toque em "Instalar app"
+                </p>
+              )}
+            </div>
+            {!isStandalone && !isIOS && canInstall && (
+              <Button onClick={promptInstall} size="sm">
+                Instalar
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Upload Area */}
         <div
           onDrop={handleDrop}
