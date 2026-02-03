@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, Building2, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Users, Building2, ChevronRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency } from "@/lib/nfe-parser";
@@ -7,6 +8,20 @@ import { formatCurrency } from "@/lib/nfe-parser";
 const Fornecedores = () => {
   const navigate = useNavigate();
   const { fornecedores, loading } = useSupabaseData();
+  const [visibleTotals, setVisibleTotals] = useState<Set<string>>(new Set());
+
+  const toggleTotalVisibility = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVisibleTotals(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const fornecedoresOrdenados = [...fornecedores].sort(
     (a, b) => b.totalCompras - a.totalCompras
@@ -75,10 +90,20 @@ const Fornecedores = () => {
                       CNPJ: {fornecedor.cnpj}
                     </p>
                     <div className="flex items-center gap-4 mt-2">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Total Compras</p>
+                      <div 
+                        onClick={(e) => toggleTotalVisibility(fornecedor.id, e)}
+                        className="cursor-pointer select-none"
+                      >
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          Total Compras
+                          {visibleTotals.has(fornecedor.id) ? (
+                            <EyeOff className="w-3 h-3" />
+                          ) : (
+                            <Eye className="w-3 h-3" />
+                          )}
+                        </p>
                         <p className="text-sm font-bold text-primary">
-                          {formatCurrency(fornecedor.totalCompras)}
+                          {visibleTotals.has(fornecedor.id) ? formatCurrency(fornecedor.totalCompras) : "••••••"}
                         </p>
                       </div>
                       <div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useReducer } from "react";
 import { X, Delete } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -6,104 +6,149 @@ interface CalculatorModalProps {
   onClose: () => void;
 }
 
+interface CalcState {
+  display: string;
+  firstOperand: number | null;
+  operator: string | null;
+  waitingForSecond: boolean;
+}
+
+type CalcAction =
+  | { type: "DIGIT"; digit: string }
+  | { type: "DECIMAL" }
+  | { type: "OPERATOR"; operator: string }
+  | { type: "EQUALS" }
+  | { type: "PERCENT" }
+  | { type: "NEGATE" }
+  | { type: "CLEAR" }
+  | { type: "BACKSPACE" };
+
+const initialState: CalcState = {
+  display: "0",
+  firstOperand: null,
+  operator: null,
+  waitingForSecond: false,
+};
+
+const calculate = (a: number, b: number, op: string): number => {
+  switch (op) {
+    case "+": return a + b;
+    case "-": return a - b;
+    case "×": return a * b;
+    case "÷": return b !== 0 ? a / b : 0;
+    default: return b;
+  }
+};
+
+const formatResult = (num: number): string => {
+  if (!isFinite(num)) return "Erro";
+  if (Number.isInteger(num)) return num.toString();
+  // Limit decimal places and remove trailing zeros
+  const formatted = num.toPrecision(10);
+  return parseFloat(formatted).toString();
+};
+
+function calcReducer(state: CalcState, action: CalcAction): CalcState {
+  switch (action.type) {
+    case "DIGIT": {
+      if (state.waitingForSecond) {
+        return {
+          ...state,
+          display: action.digit,
+          waitingForSecond: false,
+        };
+      }
+      return {
+        ...state,
+        display: state.display === "0" ? action.digit : state.display + action.digit,
+      };
+    }
+
+    case "DECIMAL": {
+      if (state.waitingForSecond) {
+        return { ...state, display: "0.", waitingForSecond: false };
+      }
+      if (!state.display.includes(".")) {
+        return { ...state, display: state.display + "." };
+      }
+      return state;
+    }
+
+    case "OPERATOR": {
+      const currentValue = parseFloat(state.display);
+      
+      if (state.firstOperand === null) {
+        return {
+          ...state,
+          firstOperand: currentValue,
+          operator: action.operator,
+          waitingForSecond: true,
+        };
+      }
+      
+      if (state.waitingForSecond) {
+        // Just change the operator
+        return { ...state, operator: action.operator };
+      }
+      
+      // Calculate pending operation
+      const result = calculate(state.firstOperand, currentValue, state.operator!);
+      return {
+        display: formatResult(result),
+        firstOperand: result,
+        operator: action.operator,
+        waitingForSecond: true,
+      };
+    }
+
+    case "EQUALS": {
+      if (state.firstOperand === null || state.operator === null) {
+        return state;
+      }
+      const currentValue = parseFloat(state.display);
+      const result = calculate(state.firstOperand, currentValue, state.operator);
+      return {
+        display: formatResult(result),
+        firstOperand: null,
+        operator: null,
+        waitingForSecond: true,
+      };
+    }
+
+    case "PERCENT": {
+      const currentValue = parseFloat(state.display);
+      if (state.firstOperand !== null && state.operator) {
+        // Calculate percentage of first operand (e.g., 100 + 10% = 100 + 10)
+        const percentValue = state.firstOperand * (currentValue / 100);
+        return { ...state, display: formatResult(percentValue) };
+      }
+      // Just divide by 100
+      return { ...state, display: formatResult(currentValue / 100) };
+    }
+
+    case "NEGATE": {
+      const currentValue = parseFloat(state.display);
+      return { ...state, display: formatResult(currentValue * -1) };
+    }
+
+    case "CLEAR":
+      return initialState;
+
+    case "BACKSPACE": {
+      if (state.waitingForSecond) return state;
+      if (state.display.length === 1 || (state.display.length === 2 && state.display[0] === "-")) {
+        return { ...state, display: "0" };
+      }
+      return { ...state, display: state.display.slice(0, -1) };
+    }
+
+    default:
+      return state;
+  }
+}
+
 const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
-  const [display, setDisplay] = useState("0");
-  const [previousValue, setPreviousValue] = useState<number | null>(null);
-  const [operation, setOperation] = useState<string | null>(null);
-  const [newNumber, setNewNumber] = useState(true);
-
-  const handleNumber = (num: string) => {
-    if (newNumber) {
-      setDisplay(num);
-      setNewNumber(false);
-    } else {
-      setDisplay(display === "0" ? num : display + num);
-    }
-  };
-
-  const handleDecimal = () => {
-    if (newNumber) {
-      setDisplay("0.");
-      setNewNumber(false);
-    } else if (!display.includes(".")) {
-      setDisplay(display + ".");
-    }
-  };
-
-  const handleOperation = (op: string) => {
-    const current = parseFloat(display);
-    
-    if (previousValue !== null && !newNumber) {
-      const result = calculate(previousValue, current, operation!);
-      setDisplay(formatResult(result));
-      setPreviousValue(result);
-    } else {
-      setPreviousValue(current);
-    }
-    
-    setOperation(op);
-    setNewNumber(true);
-  };
-
-  const calculate = (a: number, b: number, op: string): number => {
-    switch (op) {
-      case "+":
-        return a + b;
-      case "-":
-        return a - b;
-      case "×":
-        return a * b;
-      case "÷":
-        return b !== 0 ? a / b : 0;
-      default:
-        return b;
-    }
-  };
-
-  const handlePercentage = () => {
-    if (previousValue !== null && operation) {
-      const current = parseFloat(display);
-      const percentValue = previousValue * (current / 100);
-      setDisplay(formatResult(percentValue));
-    } else {
-      const current = parseFloat(display);
-      setDisplay(formatResult(current / 100));
-    }
-  };
-
-  const formatResult = (num: number): string => {
-    if (num === Math.floor(num)) {
-      return num.toString();
-    }
-    return num.toFixed(4).replace(/\.?0+$/, "");
-  };
-
-  const handleEquals = () => {
-    if (previousValue === null || operation === null) return;
-    
-    const current = parseFloat(display);
-    const result = calculate(previousValue, current, operation);
-    setDisplay(formatResult(result));
-    setPreviousValue(null);
-    setOperation(null);
-    setNewNumber(true);
-  };
-
-  const handleClear = () => {
-    setDisplay("0");
-    setPreviousValue(null);
-    setOperation(null);
-    setNewNumber(true);
-  };
-
-  const handleBackspace = () => {
-    if (display.length === 1 || (display.length === 2 && display[0] === "-")) {
-      setDisplay("0");
-      setNewNumber(true);
-    } else {
-      setDisplay(display.slice(0, -1));
-    }
-  };
+  const [state, dispatch] = useReducer(calcReducer, initialState);
 
   const buttons = [
     ["C", "⌫", "%", "÷"],
@@ -116,31 +161,31 @@ const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
   const handleButton = (btn: string) => {
     switch (btn) {
       case "C":
-        handleClear();
+        dispatch({ type: "CLEAR" });
         break;
       case "⌫":
-        handleBackspace();
+        dispatch({ type: "BACKSPACE" });
         break;
       case "±":
-        setDisplay((parseFloat(display) * -1).toString());
+        dispatch({ type: "NEGATE" });
         break;
       case ".":
-        handleDecimal();
+        dispatch({ type: "DECIMAL" });
         break;
       case "=":
-        handleEquals();
+        dispatch({ type: "EQUALS" });
         break;
       case "+":
       case "-":
       case "×":
       case "÷":
-        handleOperation(btn);
+        dispatch({ type: "OPERATOR", operator: btn });
         break;
       case "%":
-        handlePercentage();
+        dispatch({ type: "PERCENT" });
         break;
       default:
-        handleNumber(btn);
+        dispatch({ type: "DIGIT", digit: btn });
     }
   };
 
@@ -171,13 +216,13 @@ const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
         {/* Display */}
         <div className="p-4 bg-muted/50">
           <div className="text-right">
-            {previousValue !== null && operation && (
+            {state.firstOperand !== null && state.operator && (
               <p className="text-sm text-muted-foreground mb-1">
-                {previousValue} {operation}
+                {state.firstOperand} {state.operator}
               </p>
             )}
             <p className="text-3xl font-bold text-foreground truncate">
-              {display}
+              {state.display}
             </p>
           </div>
         </div>
