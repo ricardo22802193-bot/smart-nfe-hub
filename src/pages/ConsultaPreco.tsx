@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,18 @@ const ConsultaPreco = () => {
     dataInicio: undefined,
     dataFim: undefined,
   });
+  const [inputBusca, setInputBusca] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setFiltros((prev) => ({ ...prev, busca: inputBusca }));
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [inputBusca]);
 
   const produtosFiltrados = useMemo(() => {
     let resultado = [...produtos];
@@ -90,11 +102,13 @@ const ConsultaPreco = () => {
     if (produto) {
       navigate(`/produto/${produto.id}`);
     } else {
-      setFiltros((prev) => ({ ...prev, busca: code }));
+    setInputBusca(code);
+    setFiltros((prev) => ({ ...prev, busca: code }));
     }
   };
 
   const clearFilters = () => {
+    setInputBusca("");
     setFiltros({ busca: "", fornecedorId: undefined, nfeId: undefined, dataInicio: undefined, dataFim: undefined });
   };
 
@@ -144,13 +158,13 @@ const ConsultaPreco = () => {
               <Input
                 type="text"
                 placeholder="Buscar produto..."
-                value={filtros.busca}
-                onChange={(e) => setFiltros((prev) => ({ ...prev, busca: e.target.value }))}
+                value={inputBusca}
+                onChange={(e) => setInputBusca(e.target.value)}
                 className="pl-10 pr-10 text-sm"
               />
-              {filtros.busca && (
+              {inputBusca && (
                 <button
-                  onClick={() => setFiltros((prev) => ({ ...prev, busca: "" }))}
+                  onClick={() => { setInputBusca(""); setFiltros((prev) => ({ ...prev, busca: "" })); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-4 h-4" />

@@ -37,13 +37,12 @@ const initialState: CalcState = {
 };
 
 const calculate = (a: number, b: number, op: string): number => {
-  switch (normalizeOperator(op)) {
-    case "+": return a + b;
-    case "-": return a - b;
-    case "×": return a * b;
-    case "÷": return b !== 0 ? a / b : 0;
-    default: return b;
-  }
+  const normalized = normalizeOperator(op);
+  if (normalized === "+") return a + b;
+  if (normalized === "-") return a - b;
+  if (normalized === "×") return a * b;
+  if (normalized === "÷") return b !== 0 ? a / b : 0;
+  return b;
 };
 
 const formatResult = (num: number): string => {
