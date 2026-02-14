@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,12 +32,14 @@ const ConsultaPreco = () => {
     dataFim: undefined,
   });
   const [inputBusca, setInputBusca] = useState("");
+  const [visibleCount, setVisibleCount] = useState(50);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setFiltros((prev) => ({ ...prev, busca: inputBusca }));
+      setVisibleCount(50);
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -247,9 +249,18 @@ const ConsultaPreco = () => {
           </div>
         ) : (
           <div className="space-y-2">
-            {produtosFiltrados.map((produto) => (
+            {produtosFiltrados.slice(0, visibleCount).map((produto) => (
               <ProdutoCard key={produto.id} produto={produto} />
             ))}
+            {visibleCount < produtosFiltrados.length && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setVisibleCount((prev) => prev + 50)}
+              >
+                Mostrar mais ({produtosFiltrados.length - visibleCount} restantes)
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -270,7 +281,7 @@ const ConsultaPreco = () => {
   );
 };
 
-function ProdutoCard({ produto }: { produto: Produto }) {
+const ProdutoCard = memo(function ProdutoCard({ produto }: { produto: Produto }) {
   const navigate = useNavigate();
   const [showCalculator, setShowCalculator] = useState(false);
   const [showPriceBreakdown, setShowPriceBreakdown] = useState(false);
@@ -365,6 +376,6 @@ function ProdutoCard({ produto }: { produto: Produto }) {
       )}
     </>
   );
-}
+});
 
 export default ConsultaPreco;
