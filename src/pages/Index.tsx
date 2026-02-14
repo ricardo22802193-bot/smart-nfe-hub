@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import PWAInstallCard from "@/components/PWAInstallCard";
+import PricingCalculator from "@/components/PricingCalculator";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -112,6 +113,11 @@ const Index = () => {
               </button>
             ))}
           </div>
+        </section>
+
+        {/* Calculadora de Preços */}
+        <section aria-label="Calculadora de preços">
+          <PricingCalculator />
         </section>
       </main>
     </div>
