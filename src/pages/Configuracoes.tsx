@@ -6,6 +6,7 @@ import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { parseNFeXML, formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { toast } from "sonner";
+import CertificadoManager from "@/components/CertificadoManager";
 
 const Configuracoes = () => {
   const navigate = useNavigate();
@@ -87,6 +88,9 @@ const Configuracoes = () => {
       </header>
 
       <div className="container py-6 space-y-6">
+        {/* Certificado Digital */}
+        <CertificadoManager />
+
         {/* PWA Install Card */}
         <div className="bg-card rounded-xl border border-border p-4 animate-fade-in">
           <div className="flex items-center gap-4">
