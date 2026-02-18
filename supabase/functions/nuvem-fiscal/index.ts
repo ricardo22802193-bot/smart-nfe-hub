@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -8,9 +7,9 @@ const corsHeaders = {
 
 const NUVEM_FISCAL_BASE = "https://api.nuvemfiscal.com.br";
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
@@ -23,16 +22,28 @@ serve(async (req) => {
     }
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Não autorizado");
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ success: false, error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ success: false, error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub as string;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data: { user }, error: authError } = await createClient(
-      supabaseUrl,
-      supabaseKey,
-      { global: { headers: { Authorization: authHeader } } }
-    ).auth.getUser();
-
-    if (authError || !user) throw new Error("Não autorizado");
 
     const { action, ...params } = await req.json();
 
@@ -117,7 +128,7 @@ serve(async (req) => {
         }
 
         // Upload .pfx to Supabase Storage
-        const storagePath = `${user.id}/${cnpj.replace(/\D/g, "")}.pfx`;
+        const storagePath = `${userId}/${cnpj.replace(/\D/g, "")}.pfx`;
         const pfxBuffer = Uint8Array.from(atob(pfxBase64), c => c.charCodeAt(0));
 
         const { error: uploadError } = await supabase.storage
@@ -136,12 +147,12 @@ serve(async (req) => {
         const { data: existing } = await supabase
           .from("certificados")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("cnpj", cnpj.replace(/\D/g, ""))
           .maybeSingle();
 
         const certRecord = {
-          user_id: user.id,
+          user_id: userId,
           cnpj: cnpj.replace(/\D/g, ""),
           razao_social: razaoSocial,
           senha_certificado: senha,
@@ -195,7 +206,7 @@ serve(async (req) => {
         const { data: certRecord, error: certError } = await supabase
           .from("certificados")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("cnpj", cnpjClean)
           .single();
 
@@ -295,7 +306,7 @@ serve(async (req) => {
         const { data: certs, error } = await supabase
           .from("certificados")
           .select("id, cnpj, razao_social, validade, ultimo_nsu, created_at, updated_at")
-          .eq("user_id", user.id);
+          .eq("user_id", userId);
 
         if (error) throw error;
 
@@ -314,7 +325,7 @@ serve(async (req) => {
           .from("certificados")
           .select("storage_path")
           .eq("id", certificadoId)
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .single();
 
         if (cert?.storage_path) {
@@ -325,7 +336,7 @@ serve(async (req) => {
           .from("certificados")
           .delete()
           .eq("id", certificadoId)
-          .eq("user_id", user.id);
+          .eq("user_id", userId);
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
