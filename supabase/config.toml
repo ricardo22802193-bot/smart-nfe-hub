@@ -1,1 +1,4 @@
 project_id = "ppetofnuceulghkdnphz"
+
+[functions.nuvem-fiscal]
+verify_jwt = false
