@@ -57,21 +57,13 @@ Deno.serve(async (req) => {
           throw new Error("Certificado (.pfx), senha e CNPJ são obrigatórios");
         }
 
-        // Parse certificate to get expiry date using node-forge via npm
         let validade: string | null = null;
         let razaoSocial: string | null = null;
 
-        try {
-          // Decode base64 to binary
-          const pfxBinary = atob(pfxBase64);
-          const pfxBytes = new Uint8Array(pfxBinary.length);
-          for (let i = 0; i < pfxBinary.length; i++) {
-            pfxBytes[i] = pfxBinary.charCodeAt(i);
-          }
+        const cnpjClean = cnpj.replace(/\D/g, "");
 
-          // Try to extract certificate info using Nuvem Fiscal API
-          // Upload certificate to Nuvem Fiscal - they return certificate details
-          // First, ensure company is registered
+        try {
+          // 1. Register company (ignore 409 = already exists)
           const empresaRes = await fetch(`${NUVEM_FISCAL_BASE}/empresas`, {
             method: "POST",
             headers: {
@@ -79,20 +71,32 @@ Deno.serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              cpf_cnpj: cnpj.replace(/\D/g, ""),
+              cpf_cnpj: cnpjClean,
+              nome_razao_social: "Empresa",
+              email: "contato@empresa.com",
+              endereco: {
+                logradouro: "Rua",
+                numero: "0",
+                bairro: "Centro",
+                codigo_municipio: "3550308",
+                cidade: "São Paulo",
+                uf: "SP",
+                cep: "01001000",
+              },
             }),
           });
 
-          // If company already exists (409), that's fine
           if (!empresaRes.ok && empresaRes.status !== 409) {
             const errText = await empresaRes.text();
             console.error("Error registering company:", errText);
-            // Continue anyway - we'll still save the certificate
+          } else {
+            // If company was created or already exists, consume the response
+            await empresaRes.text();
           }
 
-          // Upload certificate to Nuvem Fiscal
+          // 2. Upload certificate to Nuvem Fiscal
           const certUploadRes = await fetch(
-            `${NUVEM_FISCAL_BASE}/empresas/${cnpj.replace(/\D/g, "")}/certificado`,
+            `${NUVEM_FISCAL_BASE}/empresas/${cnpjClean}/certificado`,
             {
               method: "PUT",
               headers: {
@@ -106,31 +110,55 @@ Deno.serve(async (req) => {
             }
           );
 
+          const certText = await certUploadRes.text();
+          console.log("Certificate upload response status:", certUploadRes.status);
+          console.log("Certificate upload response:", certText);
+
           if (certUploadRes.ok) {
-            const certData = await certUploadRes.json();
-            if (certData.validade || certData.not_after) {
-              validade = certData.validade || certData.not_after;
-            }
-            if (certData.razao_social || certData.common_name) {
-              razaoSocial = certData.razao_social || certData.common_name;
+            try {
+              const certData = JSON.parse(certText);
+              // API returns: not_valid_after, not_valid_before, nome_razao_social, subject_name
+              validade = certData.not_valid_after || certData.validade || null;
+              razaoSocial = certData.nome_razao_social || certData.subject_name || null;
+              console.log("Extracted validade:", validade, "razaoSocial:", razaoSocial);
+            } catch (e) {
+              console.error("Error parsing cert response:", e);
             }
           } else {
-            const errText = await certUploadRes.text();
-            console.error("Error uploading cert to Nuvem Fiscal:", errText);
-            // Try to parse the error - if it contains certificate info, extract it
+            console.error("Error uploading cert to Nuvem Fiscal:", certText);
+            // Even on error, try to get cert info via GET
+          }
+
+          // 3. If we didn't get validade, try GET to fetch certificate info
+          if (!validade) {
             try {
-              const errData = JSON.parse(errText);
-              if (errData.validade || errData.not_after) {
-                validade = errData.validade || errData.not_after;
+              const certInfoRes = await fetch(
+                `${NUVEM_FISCAL_BASE}/empresas/${cnpjClean}/certificado`,
+                {
+                  method: "GET",
+                  headers: {
+                    "Authorization": `Bearer ${nuvemFiscalKey}`,
+                  },
+                }
+              );
+              const certInfoText = await certInfoRes.text();
+              console.log("GET certificate info response:", certInfoText);
+              if (certInfoRes.ok) {
+                const certInfo = JSON.parse(certInfoText);
+                validade = certInfo.not_valid_after || null;
+                razaoSocial = razaoSocial || certInfo.nome_razao_social || certInfo.subject_name || null;
+                console.log("From GET - validade:", validade, "razaoSocial:", razaoSocial);
               }
-            } catch {}
+            } catch (e) {
+              console.error("Error fetching cert info:", e);
+            }
           }
         } catch (parseErr) {
           console.error("Error processing certificate:", parseErr);
         }
 
         // Upload .pfx to Supabase Storage
-        const storagePath = `${userId}/${cnpj.replace(/\D/g, "")}.pfx`;
+        const storagePath = `${userId}/${cnpjClean}.pfx`;
         const pfxBuffer = Uint8Array.from(atob(pfxBase64), c => c.charCodeAt(0));
 
         const { error: uploadError } = await supabase.storage
@@ -150,12 +178,12 @@ Deno.serve(async (req) => {
           .from("certificados")
           .select("id")
           .eq("user_id", userId)
-          .eq("cnpj", cnpj.replace(/\D/g, ""))
+          .eq("cnpj", cnpjClean)
           .maybeSingle();
 
         const certRecord = {
           user_id: userId,
-          cnpj: cnpj.replace(/\D/g, ""),
+          cnpj: cnpjClean,
           razao_social: razaoSocial,
           senha_certificado: senha,
           validade: validade,
@@ -217,10 +245,12 @@ Deno.serve(async (req) => {
         }
 
         const ultimoNsu = certRecord.ultimo_nsu || "0";
+        console.log(`Consulting SEFAZ for CNPJ ${cnpjClean}, ultimo_nsu: ${ultimoNsu}`);
 
-        // Query Nuvem Fiscal distribution API
+        // Use the correct Nuvem Fiscal DistDFeInt endpoint
+        // POST /nfe/distribuicoes with body
         const distRes = await fetch(
-          `${NUVEM_FISCAL_BASE}/nfe/distribuicoes?cpf_cnpj=${cnpjClean}&ultimo_nsu=${ultimoNsu}`,
+          `${NUVEM_FISCAL_BASE}/nfe/distribuicoes`,
           {
             method: "POST",
             headers: {
@@ -234,15 +264,18 @@ Deno.serve(async (req) => {
           }
         );
 
+        const distText = await distRes.text();
+        console.log("Distribution response status:", distRes.status);
+        console.log("Distribution response:", distText.substring(0, 2000));
+
         if (!distRes.ok) {
-          const errText = await distRes.text();
-          console.error("Distribution error:", errText);
-          throw new Error(`Erro na consulta SEFAZ: ${distRes.status}`);
+          console.error("Distribution error full:", distText);
+          throw new Error(`Erro na consulta SEFAZ: ${distRes.status} - ${distText.substring(0, 200)}`);
         }
 
-        const distData = await distRes.json();
+        const distData = JSON.parse(distText);
 
-        // Extract XMLs from the response
+        // Extract documents from the response
         const xmlDocuments: Array<{
           nsu: string;
           chave_acesso: string;
@@ -252,45 +285,55 @@ Deno.serve(async (req) => {
 
         let maxNsu = ultimoNsu;
 
-        if (distData.documentos && Array.isArray(distData.documentos)) {
-          for (const doc of distData.documentos) {
-            if (doc.nsu && doc.nsu > maxNsu) {
-              maxNsu = doc.nsu;
+        // The response might have different structures depending on API version
+        // Check for "documentos" array at root or under "body"
+        const documentos = distData.documentos || distData.body?.documentos || distData.data || [];
+
+        if (Array.isArray(documentos)) {
+          for (const doc of documentos) {
+            const docNsu = doc.nsu || doc.NSU || "";
+            if (docNsu && docNsu > maxNsu) {
+              maxNsu = docNsu;
             }
-            if (doc.xml) {
+            
+            // Get XML - might be at doc.xml or doc.body or need to be fetched
+            const xml = doc.xml || doc.body || "";
+            const tipo = doc.tipo_documento || doc.tipo || doc.schema || "nfe";
+            
+            if (xml) {
               xmlDocuments.push({
-                nsu: doc.nsu || "",
-                chave_acesso: doc.chave_acesso || doc.chave || "",
-                xml: doc.xml,
-                tipo: doc.tipo_documento || doc.tipo || "nfe",
+                nsu: docNsu,
+                chave_acesso: doc.chave_acesso || doc.chave || doc.chNFe || "",
+                xml: xml,
+                tipo: tipo,
               });
             }
           }
         }
 
-        // Also check if the response has a different structure
-        if (distData.body?.documentos && Array.isArray(distData.body.documentos)) {
-          for (const doc of distData.body.documentos) {
-            if (doc.nsu && doc.nsu > maxNsu) {
-              maxNsu = doc.nsu;
-            }
-            if (doc.xml) {
-              xmlDocuments.push({
-                nsu: doc.nsu || "",
-                chave_acesso: doc.chave_acesso || doc.chave || "",
-                xml: doc.xml,
-                tipo: doc.tipo_documento || doc.tipo || "nfe",
-              });
-            }
-          }
+        // Also check for max_nsu or ultimo_nsu in the response
+        const responseMaxNsu = distData.max_nsu || distData.ultimo_nsu || distData.ultNSU || "";
+        if (responseMaxNsu && responseMaxNsu > maxNsu) {
+          maxNsu = responseMaxNsu;
         }
 
-        // Update last NSU
+        console.log(`Found ${xmlDocuments.length} documents. Max NSU: ${maxNsu} (was: ${ultimoNsu})`);
+
+        // Update last NSU - always update if we got a response, even with 0 docs
         if (maxNsu !== ultimoNsu) {
-          await supabase
+          const { error: updateError } = await supabase
             .from("certificados")
-            .update({ ultimo_nsu: maxNsu, updated_at: new Date().toISOString() })
+            .update({ 
+              ultimo_nsu: maxNsu, 
+              updated_at: new Date().toISOString() 
+            })
             .eq("id", certRecord.id);
+          
+          if (updateError) {
+            console.error("Error updating NSU:", updateError);
+          } else {
+            console.log(`NSU updated from ${ultimoNsu} to ${maxNsu}`);
+          }
         }
 
         return new Response(JSON.stringify({
@@ -298,7 +341,8 @@ Deno.serve(async (req) => {
           documentos: xmlDocuments,
           ultimo_nsu: maxNsu,
           total: xmlDocuments.length,
-          max_nsu_response: distData.max_nsu || distData.ultimo_nsu || maxNsu,
+          max_nsu_response: responseMaxNsu || maxNsu,
+          raw_response_keys: Object.keys(distData),
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -325,13 +369,31 @@ Deno.serve(async (req) => {
 
         const { data: cert } = await supabase
           .from("certificados")
-          .select("storage_path")
+          .select("storage_path, cnpj")
           .eq("id", certificadoId)
           .eq("user_id", userId)
           .single();
 
         if (cert?.storage_path) {
           await supabase.storage.from("certificados").remove([cert.storage_path]);
+        }
+
+        // Also try to delete from Nuvem Fiscal
+        if (cert?.cnpj) {
+          try {
+            const delRes = await fetch(
+              `${NUVEM_FISCAL_BASE}/empresas/${cert.cnpj}/certificado`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Authorization": `Bearer ${nuvemFiscalKey}`,
+                },
+              }
+            );
+            await delRes.text(); // consume response
+          } catch (e) {
+            console.error("Error deleting cert from Nuvem Fiscal:", e);
+          }
         }
 
         await supabase
