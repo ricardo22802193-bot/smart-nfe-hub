@@ -14,10 +14,49 @@ export type Database = {
   }
   public: {
     Tables: {
+      certificados: {
+        Row: {
+          cnpj: string
+          created_at: string | null
+          id: string
+          razao_social: string | null
+          senha_certificado: string
+          storage_path: string | null
+          ultimo_nsu: string | null
+          updated_at: string | null
+          user_id: string
+          validade: string | null
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string | null
+          id?: string
+          razao_social?: string | null
+          senha_certificado: string
+          storage_path?: string | null
+          ultimo_nsu?: string | null
+          updated_at?: string | null
+          user_id: string
+          validade?: string | null
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string | null
+          id?: string
+          razao_social?: string | null
+          senha_certificado?: string
+          storage_path?: string | null
+          ultimo_nsu?: string | null
+          updated_at?: string | null
+          user_id?: string
+          validade?: string | null
+        }
+        Relationships: []
+      }
       contatos: {
         Row: {
           cargo: string | null
-          created_at: string
+          created_at: string | null
           email: string | null
           fornecedor_id: string
           id: string
@@ -27,7 +66,7 @@ export type Database = {
         }
         Insert: {
           cargo?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string | null
           fornecedor_id: string
           id?: string
@@ -37,7 +76,7 @@ export type Database = {
         }
         Update: {
           cargo?: string | null
-          created_at?: string
+          created_at?: string | null
           email?: string | null
           fornecedor_id?: string
           id?: string
@@ -55,59 +94,88 @@ export type Database = {
           },
         ]
       }
+      dividas_fornecedor: {
+        Row: {
+          created_at: string | null
+          fornecedor_id: string
+          id: string
+          updated_at: string | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          fornecedor_id: string
+          id?: string
+          updated_at?: string | null
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string | null
+          fornecedor_id?: string
+          id?: string
+          updated_at?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dividas_fornecedor_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fornecedores: {
         Row: {
           cnpj: string
-          created_at: string
+          created_at: string | null
           endereco: string | null
           id: string
           nome_fantasia: string | null
           observacoes: string | null
           razao_social: string
           telefone: string | null
-          total_compras: number
-          updated_at: string
+          total_compras: number | null
         }
         Insert: {
           cnpj: string
-          created_at?: string
+          created_at?: string | null
           endereco?: string | null
           id?: string
           nome_fantasia?: string | null
           observacoes?: string | null
           razao_social: string
           telefone?: string | null
-          total_compras?: number
-          updated_at?: string
+          total_compras?: number | null
         }
         Update: {
           cnpj?: string
-          created_at?: string
+          created_at?: string | null
           endereco?: string | null
           id?: string
           nome_fantasia?: string | null
           observacoes?: string | null
           razao_social?: string
           telefone?: string | null
-          total_compras?: number
-          updated_at?: string
+          total_compras?: number | null
         }
         Relationships: []
       }
       historico_pedidos: {
         Row: {
-          created_at: string
+          created_at: string | null
           data: string
-          despesa_valor_cofins: number
-          despesa_valor_desconto: number
-          despesa_valor_frete: number
-          despesa_valor_icms: number
-          despesa_valor_icms_st: number
-          despesa_valor_ipi: number
-          despesa_valor_outras: number
-          despesa_valor_pis: number
-          despesa_valor_produto: number
-          despesa_valor_seguro: number
+          despesa_valor_cofins: number | null
+          despesa_valor_desconto: number | null
+          despesa_valor_frete: number | null
+          despesa_valor_icms: number | null
+          despesa_valor_icms_st: number | null
+          despesa_valor_ipi: number | null
+          despesa_valor_outras: number | null
+          despesa_valor_pis: number | null
+          despesa_valor_produto: number | null
+          despesa_valor_seguro: number | null
           fornecedor_id: string
           fornecedor_nome: string
           id: string
@@ -116,25 +184,25 @@ export type Database = {
           produto_id: string
           quantidade: number
           quantidade_embalagem: number | null
-          valor_imposto: number
+          valor_imposto: number | null
           valor_total: number
           valor_total_com_despesas: number
           valor_unitario: number
           valor_unitario_real: number
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           data: string
-          despesa_valor_cofins?: number
-          despesa_valor_desconto?: number
-          despesa_valor_frete?: number
-          despesa_valor_icms?: number
-          despesa_valor_icms_st?: number
-          despesa_valor_ipi?: number
-          despesa_valor_outras?: number
-          despesa_valor_pis?: number
-          despesa_valor_produto?: number
-          despesa_valor_seguro?: number
+          despesa_valor_cofins?: number | null
+          despesa_valor_desconto?: number | null
+          despesa_valor_frete?: number | null
+          despesa_valor_icms?: number | null
+          despesa_valor_icms_st?: number | null
+          despesa_valor_ipi?: number | null
+          despesa_valor_outras?: number | null
+          despesa_valor_pis?: number | null
+          despesa_valor_produto?: number | null
+          despesa_valor_seguro?: number | null
           fornecedor_id: string
           fornecedor_nome: string
           id?: string
@@ -143,25 +211,25 @@ export type Database = {
           produto_id: string
           quantidade: number
           quantidade_embalagem?: number | null
-          valor_imposto?: number
+          valor_imposto?: number | null
           valor_total: number
           valor_total_com_despesas: number
           valor_unitario: number
           valor_unitario_real: number
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           data?: string
-          despesa_valor_cofins?: number
-          despesa_valor_desconto?: number
-          despesa_valor_frete?: number
-          despesa_valor_icms?: number
-          despesa_valor_icms_st?: number
-          despesa_valor_ipi?: number
-          despesa_valor_outras?: number
-          despesa_valor_pis?: number
-          despesa_valor_produto?: number
-          despesa_valor_seguro?: number
+          despesa_valor_cofins?: number | null
+          despesa_valor_desconto?: number | null
+          despesa_valor_frete?: number | null
+          despesa_valor_icms?: number | null
+          despesa_valor_icms_st?: number | null
+          despesa_valor_ipi?: number | null
+          despesa_valor_outras?: number | null
+          despesa_valor_pis?: number | null
+          despesa_valor_produto?: number | null
+          despesa_valor_seguro?: number | null
           fornecedor_id?: string
           fornecedor_nome?: string
           id?: string
@@ -170,7 +238,7 @@ export type Database = {
           produto_id?: string
           quantidade?: number
           quantidade_embalagem?: number | null
-          valor_imposto?: number
+          valor_imposto?: number | null
           valor_total?: number
           valor_total_com_despesas?: number
           valor_unitario?: number
@@ -205,18 +273,18 @@ export type Database = {
           cfop: string | null
           codigo: string
           codigo_barras: string | null
-          created_at: string
+          created_at: string | null
           descricao: string
-          despesa_valor_cofins: number
-          despesa_valor_desconto: number
-          despesa_valor_frete: number
-          despesa_valor_icms: number
-          despesa_valor_icms_st: number
-          despesa_valor_ipi: number
-          despesa_valor_outras: number
-          despesa_valor_pis: number
-          despesa_valor_produto: number
-          despesa_valor_seguro: number
+          despesa_valor_cofins: number | null
+          despesa_valor_desconto: number | null
+          despesa_valor_frete: number | null
+          despesa_valor_icms: number | null
+          despesa_valor_icms_st: number | null
+          despesa_valor_ipi: number | null
+          despesa_valor_outras: number | null
+          despesa_valor_pis: number | null
+          despesa_valor_produto: number | null
+          despesa_valor_seguro: number | null
           id: string
           ncm: string | null
           nfe_id: string
@@ -224,7 +292,7 @@ export type Database = {
           quantidade: number
           quantidade_embalagem: number | null
           unidade: string
-          valor_imposto: number
+          valor_imposto: number | null
           valor_total: number
           valor_total_com_despesas: number
           valor_unitario: number
@@ -234,18 +302,18 @@ export type Database = {
           cfop?: string | null
           codigo: string
           codigo_barras?: string | null
-          created_at?: string
+          created_at?: string | null
           descricao: string
-          despesa_valor_cofins?: number
-          despesa_valor_desconto?: number
-          despesa_valor_frete?: number
-          despesa_valor_icms?: number
-          despesa_valor_icms_st?: number
-          despesa_valor_ipi?: number
-          despesa_valor_outras?: number
-          despesa_valor_pis?: number
-          despesa_valor_produto?: number
-          despesa_valor_seguro?: number
+          despesa_valor_cofins?: number | null
+          despesa_valor_desconto?: number | null
+          despesa_valor_frete?: number | null
+          despesa_valor_icms?: number | null
+          despesa_valor_icms_st?: number | null
+          despesa_valor_ipi?: number | null
+          despesa_valor_outras?: number | null
+          despesa_valor_pis?: number | null
+          despesa_valor_produto?: number | null
+          despesa_valor_seguro?: number | null
           id?: string
           ncm?: string | null
           nfe_id: string
@@ -253,7 +321,7 @@ export type Database = {
           quantidade: number
           quantidade_embalagem?: number | null
           unidade: string
-          valor_imposto?: number
+          valor_imposto?: number | null
           valor_total: number
           valor_total_com_despesas: number
           valor_unitario: number
@@ -263,18 +331,18 @@ export type Database = {
           cfop?: string | null
           codigo?: string
           codigo_barras?: string | null
-          created_at?: string
+          created_at?: string | null
           descricao?: string
-          despesa_valor_cofins?: number
-          despesa_valor_desconto?: number
-          despesa_valor_frete?: number
-          despesa_valor_icms?: number
-          despesa_valor_icms_st?: number
-          despesa_valor_ipi?: number
-          despesa_valor_outras?: number
-          despesa_valor_pis?: number
-          despesa_valor_produto?: number
-          despesa_valor_seguro?: number
+          despesa_valor_cofins?: number | null
+          despesa_valor_desconto?: number | null
+          despesa_valor_frete?: number | null
+          despesa_valor_icms?: number | null
+          despesa_valor_icms_st?: number | null
+          despesa_valor_ipi?: number | null
+          despesa_valor_outras?: number | null
+          despesa_valor_pis?: number | null
+          despesa_valor_produto?: number | null
+          despesa_valor_seguro?: number | null
           id?: string
           ncm?: string | null
           nfe_id?: string
@@ -282,7 +350,7 @@ export type Database = {
           quantidade?: number
           quantidade_embalagem?: number | null
           unidade?: string
-          valor_imposto?: number
+          valor_imposto?: number | null
           valor_total?: number
           valor_total_com_despesas?: number
           valor_unitario?: number
@@ -308,40 +376,40 @@ export type Database = {
       nfes: {
         Row: {
           chave_acesso: string
-          created_at: string
+          created_at: string | null
           data_emissao: string
           fornecedor_id: string
           id: string
-          importado_em: string
+          importado_em: string | null
           numero: string
           serie: string
-          valor_impostos: number
+          valor_impostos: number | null
           valor_total: number
           xml_original: string | null
         }
         Insert: {
           chave_acesso: string
-          created_at?: string
+          created_at?: string | null
           data_emissao: string
           fornecedor_id: string
           id?: string
-          importado_em?: string
+          importado_em?: string | null
           numero: string
           serie: string
-          valor_impostos?: number
+          valor_impostos?: number | null
           valor_total: number
           xml_original?: string | null
         }
         Update: {
           chave_acesso?: string
-          created_at?: string
+          created_at?: string | null
           data_emissao?: string
           fornecedor_id?: string
           id?: string
-          importado_em?: string
+          importado_em?: string | null
           numero?: string
           serie?: string
-          valor_impostos?: number
+          valor_impostos?: number | null
           valor_total?: number
           xml_original?: string | null
         }
@@ -355,39 +423,71 @@ export type Database = {
           },
         ]
       }
+      pagamentos_divida: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string | null
+          divida_id: string
+          id: string
+          observacao: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          divida_id: string
+          id?: string
+          observacao?: string | null
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          divida_id?: string
+          id?: string
+          observacao?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_divida_divida_id_fkey"
+            columns: ["divida_id"]
+            isOneToOne: false
+            referencedRelation: "dividas_fornecedor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produtos: {
         Row: {
           codigo: string
           codigo_barras: string | null
-          created_at: string
+          created_at: string | null
           descricao: string
           id: string
           ncm: string | null
           quantidade_embalagem: number | null
           unidade: string
-          updated_at: string
         }
         Insert: {
           codigo: string
           codigo_barras?: string | null
-          created_at?: string
+          created_at?: string | null
           descricao: string
           id?: string
           ncm?: string | null
           quantidade_embalagem?: number | null
           unidade: string
-          updated_at?: string
         }
         Update: {
           codigo?: string
           codigo_barras?: string | null
-          created_at?: string
+          created_at?: string | null
           descricao?: string
           id?: string
           ncm?: string | null
           quantidade_embalagem?: number | null
           unidade?: string
-          updated_at?: string
         }
         Relationships: []
       }
