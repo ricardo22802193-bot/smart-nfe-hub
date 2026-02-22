@@ -29,20 +29,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
     const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
-    if (authError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ success: false, error: "Não autorizado" }), {
+    
+    // Decode JWT to extract user ID
+    let userId: string;
+    try {
+      const payloadBase64 = token.split('.')[1];
+      const payloadJson = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
+      const payload = JSON.parse(payloadJson);
+      userId = payload.sub;
+      if (!userId) throw new Error("No sub in token");
+    } catch {
+      return new Response(JSON.stringify({ success: false, error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const userId = claimsData.claims.sub as string;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { action, ...params } = await req.json();
