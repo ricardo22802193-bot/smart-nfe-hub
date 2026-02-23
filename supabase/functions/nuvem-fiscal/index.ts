@@ -31,7 +31,7 @@ async function getNuvemFiscalToken(): Promise<string> {
       grant_type: "client_credentials",
       client_id: clientId,
       client_secret: clientSecret,
-      scope: "empresa certificado nfe",
+      scope: "empresa nfe cep",
     }),
   });
 
