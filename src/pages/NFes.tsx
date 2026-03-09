@@ -20,6 +20,15 @@ const NFes = () => {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [showTotalCompras, setShowTotalCompras] = useState(false);
   const [showTotalMes, setShowTotalMes] = useState(false);
+  const [inputBusca, setInputBusca] = useState("");
+  const [busca, setBusca] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setBusca(inputBusca), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [inputBusca]);
 
   // Get available months from NFes
   const availableMonths = useMemo(() => {
