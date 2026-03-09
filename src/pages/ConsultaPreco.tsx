@@ -1,15 +1,17 @@
 import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { Produto, HistoricoPedido } from "@/types/nfe";
 import CalculatorModal from "@/components/CalculatorModal";
 import PriceBreakdown from "@/components/PriceBreakdown";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { cn } from "@/lib/utils";
 
 interface FiltrosProduto {
   busca: string;
