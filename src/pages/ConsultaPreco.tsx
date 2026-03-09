@@ -1,15 +1,76 @@
 import { useState, useMemo, useCallback, useRef, useEffect, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2 } from "lucide-react";
+import { ArrowLeft, Search, Camera, X, Filter, Calculator, Info, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { Produto, HistoricoPedido } from "@/types/nfe";
 import CalculatorModal from "@/components/CalculatorModal";
 import PriceBreakdown from "@/components/PriceBreakdown";
 import BarcodeScanner from "@/components/BarcodeScanner";
+import { cn } from "@/lib/utils";
+
+interface SearchableComboboxProps {
+  value?: string;
+  onValueChange: (value: string | undefined) => void;
+  placeholder: string;
+  emptyText: string;
+  items: { value: string; label: string }[];
+}
+
+function SearchableCombobox({ value, onValueChange, placeholder, emptyText, items }: SearchableComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = items.find((i) => i.value === value)?.label;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="justify-between text-xs sm:text-sm h-9 sm:h-10 w-full font-normal"
+        >
+          <span className="truncate">{selectedLabel || placeholder}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Buscar ${placeholder.toLowerCase()}...`} className="text-xs sm:text-sm" />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="__all__"
+                onSelect={() => { onValueChange(undefined); setOpen(false); }}
+              >
+                <Check className={cn("mr-2 h-3 w-3", !value ? "opacity-100" : "opacity-0")} />
+                Todos
+              </CommandItem>
+              {items.map((item) => (
+                <CommandItem
+                  key={item.value}
+                  value={item.label}
+                  onSelect={() => {
+                    onValueChange(item.value === value ? undefined : item.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-3 w-3", value === item.value ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{item.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface FiltrosProduto {
   busca: string;
@@ -197,43 +258,29 @@ const ConsultaPreco = () => {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={filtros.fornecedorId || "all"}
-            onValueChange={(value) =>
-              setFiltros((prev) => ({ ...prev, fornecedorId: value === "all" ? undefined : value }))
-            }
-          >
-            <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
-              <SelectValue placeholder="Fornecedor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Fornecedores</SelectItem>
-              {fornecedores.map((f) => (
-                <SelectItem key={f.id} value={f.id}>
-                  {f.nomeFantasia || f.razaoSocial}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Fornecedor Combobox */}
+          <SearchableCombobox
+            value={filtros.fornecedorId}
+            onValueChange={(value) => setFiltros((prev) => ({ ...prev, fornecedorId: value }))}
+            placeholder="Fornecedor"
+            emptyText="Nenhum fornecedor"
+            items={fornecedores.map((f) => ({
+              value: f.id,
+              label: f.nomeFantasia || f.razaoSocial,
+            }))}
+          />
 
-          <Select
-            value={filtros.nfeId || "all"}
-            onValueChange={(value) =>
-              setFiltros((prev) => ({ ...prev, nfeId: value === "all" ? undefined : value }))
-            }
-          >
-            <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
-              <SelectValue placeholder="Nota Fiscal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas NFes</SelectItem>
-              {nfes.map((n) => (
-                <SelectItem key={n.id} value={n.id}>
-                  NFe {n.numero}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* NFe Combobox */}
+          <SearchableCombobox
+            value={filtros.nfeId}
+            onValueChange={(value) => setFiltros((prev) => ({ ...prev, nfeId: value }))}
+            placeholder="Nota Fiscal"
+            emptyText="Nenhuma NFe"
+            items={nfes.map((n) => ({
+              value: n.id,
+              label: `NFe ${n.numero}`,
+            }))}
+          />
         </div>
       </div>
 

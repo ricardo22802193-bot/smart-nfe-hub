@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, ChevronDown, Eye, EyeOff, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { NFe } from "@/types/nfe";
@@ -19,6 +20,15 @@ const NFes = () => {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [showTotalCompras, setShowTotalCompras] = useState(false);
   const [showTotalMes, setShowTotalMes] = useState(false);
+  const [inputBusca, setInputBusca] = useState("");
+  const [busca, setBusca] = useState("");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setBusca(inputBusca), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [inputBusca]);
 
   // Get available months from NFes
   const availableMonths = useMemo(() => {
@@ -51,9 +61,21 @@ const NFes = () => {
 
   const activeMonthKey = selectedMonth || currentMonthKey;
 
-  const nfesOrdenadas = [...nfes].sort(
-    (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
-  );
+  const nfesOrdenadas = useMemo(() => {
+    let resultado = [...nfes].sort(
+      (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
+    );
+    if (busca) {
+      const termo = busca.toLowerCase();
+      resultado = resultado.filter(nfe =>
+        nfe.numero.toLowerCase().includes(termo) ||
+        nfe.fornecedor.razaoSocial.toLowerCase().includes(termo) ||
+        (nfe.fornecedor.nomeFantasia && nfe.fornecedor.nomeFantasia.toLowerCase().includes(termo)) ||
+        formatDate(new Date(nfe.dataEmissao)).includes(termo)
+      );
+    }
+    return resultado;
+  }, [nfes, busca]);
 
   // Dashboard do mês selecionado
   const dashboardMes = useMemo(() => {
@@ -97,6 +119,26 @@ const NFes = () => {
                 {nfes.length} NFe(s) importada(s)
               </p>
             </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar por empresa, número ou data..."
+              value={inputBusca}
+              onChange={(e) => setInputBusca(e.target.value)}
+              className="pl-10 pr-10 text-sm"
+            />
+            {inputBusca && (
+              <button
+                onClick={() => { setInputBusca(""); setBusca(""); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </header>
