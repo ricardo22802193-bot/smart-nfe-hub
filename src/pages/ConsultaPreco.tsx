@@ -13,6 +13,65 @@ import PriceBreakdown from "@/components/PriceBreakdown";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { cn } from "@/lib/utils";
 
+interface SearchableComboboxProps {
+  value?: string;
+  onValueChange: (value: string | undefined) => void;
+  placeholder: string;
+  emptyText: string;
+  items: { value: string; label: string }[];
+}
+
+function SearchableCombobox({ value, onValueChange, placeholder, emptyText, items }: SearchableComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const selectedLabel = items.find((i) => i.value === value)?.label;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="justify-between text-xs sm:text-sm h-9 sm:h-10 w-full font-normal"
+        >
+          <span className="truncate">{selectedLabel || placeholder}</span>
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Buscar ${placeholder.toLowerCase()}...`} className="text-xs sm:text-sm" />
+          <CommandList>
+            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandGroup>
+              <CommandItem
+                value="__all__"
+                onSelect={() => { onValueChange(undefined); setOpen(false); }}
+              >
+                <Check className={cn("mr-2 h-3 w-3", !value ? "opacity-100" : "opacity-0")} />
+                Todos
+              </CommandItem>
+              {items.map((item) => (
+                <CommandItem
+                  key={item.value}
+                  value={item.label}
+                  onSelect={() => {
+                    onValueChange(item.value === value ? undefined : item.value);
+                    setOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-3 w-3", value === item.value ? "opacity-100" : "opacity-0")} />
+                  <span className="truncate">{item.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 interface FiltrosProduto {
   busca: string;
   fornecedorId?: string;
