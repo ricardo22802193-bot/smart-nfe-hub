@@ -61,9 +61,21 @@ const NFes = () => {
 
   const activeMonthKey = selectedMonth || currentMonthKey;
 
-  const nfesOrdenadas = [...nfes].sort(
-    (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
-  );
+  const nfesOrdenadas = useMemo(() => {
+    let resultado = [...nfes].sort(
+      (a, b) => new Date(b.dataEmissao).getTime() - new Date(a.dataEmissao).getTime()
+    );
+    if (busca) {
+      const termo = busca.toLowerCase();
+      resultado = resultado.filter(nfe =>
+        nfe.numero.toLowerCase().includes(termo) ||
+        nfe.fornecedor.razaoSocial.toLowerCase().includes(termo) ||
+        (nfe.fornecedor.nomeFantasia && nfe.fornecedor.nomeFantasia.toLowerCase().includes(termo)) ||
+        formatDate(new Date(nfe.dataEmissao)).includes(termo)
+      );
+    }
+    return resultado;
+  }, [nfes, busca]);
 
   // Dashboard do mês selecionado
   const dashboardMes = useMemo(() => {
