@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, FileText, Calendar, Building2, ChevronRight, X, Package, TrendingUp, ChevronDown, Eye, EyeOff, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import { NFe } from "@/types/nfe";
