@@ -199,43 +199,29 @@ const ConsultaPreco = () => {
           )}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={filtros.fornecedorId || "all"}
-            onValueChange={(value) =>
-              setFiltros((prev) => ({ ...prev, fornecedorId: value === "all" ? undefined : value }))
-            }
-          >
-            <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
-              <SelectValue placeholder="Fornecedor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Fornecedores</SelectItem>
-              {fornecedores.map((f) => (
-                <SelectItem key={f.id} value={f.id}>
-                  {f.nomeFantasia || f.razaoSocial}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Fornecedor Combobox */}
+          <SearchableCombobox
+            value={filtros.fornecedorId}
+            onValueChange={(value) => setFiltros((prev) => ({ ...prev, fornecedorId: value }))}
+            placeholder="Fornecedor"
+            emptyText="Nenhum fornecedor"
+            items={fornecedores.map((f) => ({
+              value: f.id,
+              label: f.nomeFantasia || f.razaoSocial,
+            }))}
+          />
 
-          <Select
-            value={filtros.nfeId || "all"}
-            onValueChange={(value) =>
-              setFiltros((prev) => ({ ...prev, nfeId: value === "all" ? undefined : value }))
-            }
-          >
-            <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
-              <SelectValue placeholder="Nota Fiscal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas NFes</SelectItem>
-              {nfes.map((n) => (
-                <SelectItem key={n.id} value={n.id}>
-                  NFe {n.numero}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* NFe Combobox */}
+          <SearchableCombobox
+            value={filtros.nfeId}
+            onValueChange={(value) => setFiltros((prev) => ({ ...prev, nfeId: value }))}
+            placeholder="Nota Fiscal"
+            emptyText="Nenhuma NFe"
+            items={nfes.map((n) => ({
+              value: n.id,
+              label: `NFe ${n.numero}`,
+            }))}
+          />
         </div>
       </div>
 
