@@ -120,6 +120,26 @@ const NFes = () => {
               </p>
             </div>
           </div>
+
+          {/* Search Bar */}
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Buscar por empresa, número ou data..."
+              value={inputBusca}
+              onChange={(e) => setInputBusca(e.target.value)}
+              className="pl-10 pr-10 text-sm"
+            />
+            {inputBusca && (
+              <button
+                onClick={() => { setInputBusca(""); setBusca(""); }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
