@@ -189,6 +189,7 @@ const ConsultaPreco = () => {
     setFiltros({ busca: "", fornecedorId: undefined, nfeId: undefined, dataInicio: undefined, dataFim: undefined });
   };
 
+
   const hasFilters = filtros.fornecedorId || filtros.nfeId || filtros.dataInicio || filtros.dataFim;
 
   if (loading) {
