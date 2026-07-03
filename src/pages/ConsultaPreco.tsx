@@ -80,21 +80,34 @@ interface FiltrosProduto {
   dataFim?: Date;
 }
 
-const ConsultaPreco = () => {
-  const navigate = useNavigate();
-  const { produtos, fornecedores, nfes, getProdutoByCodigoBarras, loading } = useSupabaseData();
-  const [showScanner, setShowScanner] = useState(false);
-  const [showCalculator, setShowCalculator] = useState(false);
-  const [filtros, setFiltros] = useState<FiltrosProduto>({
+// Persist filters across navigation (survives mount/unmount)
+const persistedFilters: { current: FiltrosProduto } = {
+  current: {
     busca: "",
     fornecedorId: undefined,
     nfeId: undefined,
     dataInicio: undefined,
     dataFim: undefined,
-  });
-  const [inputBusca, setInputBusca] = useState("");
+  },
+};
+
+const ConsultaPreco = () => {
+  const navigate = useNavigate();
+  const { produtos, fornecedores, nfes, getProdutoByCodigoBarras, loading } = useSupabaseData();
+  const [showScanner, setShowScanner] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [filtros, setFiltrosState] = useState<FiltrosProduto>(persistedFilters.current);
+  const [inputBusca, setInputBusca] = useState(persistedFilters.current.busca);
   const [visibleCount, setVisibleCount] = useState(50);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const setFiltros = useCallback((updater: FiltrosProduto | ((prev: FiltrosProduto) => FiltrosProduto)) => {
+    setFiltrosState((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      persistedFilters.current = next;
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -105,7 +118,8 @@ const ConsultaPreco = () => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [inputBusca]);
+  }, [inputBusca, setFiltros]);
+
 
   const produtosFiltrados = useMemo(() => {
     let resultado = [...produtos];
