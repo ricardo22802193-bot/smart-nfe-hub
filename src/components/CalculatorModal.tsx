@@ -1,6 +1,10 @@
-import { useReducer } from "react";
-import { X, Delete } from "lucide-react";
+import { useReducer, useState } from "react";
+import { X, Delete, Calculator as CalcIcon, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 interface CalculatorModalProps {
   onClose: () => void;
@@ -185,6 +189,70 @@ function calcReducer(state: CalcState, action: CalcAction): CalcState {
   }
 }
 
+const fmtBRL = (v: number) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const fmtPct = (v: number) =>
+  v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+
+function MargemMarkupCalc() {
+  const [custo, setCusto] = useState("");
+  const [venda, setVenda] = useState("");
+
+  const custoNum = parseFloat(custo.replace(",", ".")) || 0;
+  const vendaNum = parseFloat(venda.replace(",", ".")) || 0;
+  const lucro = vendaNum - custoNum;
+  const margem = vendaNum > 0 ? (lucro / vendaNum) * 100 : 0;
+  const markup = custoNum > 0 ? (lucro / custoNum) * 100 : 0;
+
+  return (
+    <div className="space-y-3 p-4">
+      <p className="text-xs text-muted-foreground">
+        Informe o custo e o preço de venda para descobrir a margem e o markup.
+      </p>
+      <div className="space-y-2">
+        <div>
+          <Label htmlFor="calc-custo" className="text-xs">Preço de custo (R$)</Label>
+          <Input
+            id="calc-custo"
+            placeholder="0,00"
+            inputMode="decimal"
+            value={custo}
+            onChange={(e) => setCusto(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="calc-venda" className="text-xs">Preço de venda (R$)</Label>
+          <Input
+            id="calc-venda"
+            placeholder="0,00"
+            inputMode="decimal"
+            value={venda}
+            onChange={(e) => setVenda(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {custoNum > 0 && vendaNum > 0 && (
+        <div className="space-y-2 pt-2 animate-fade-in">
+          <div className={`flex justify-between rounded-lg px-3 py-2 ${lucro >= 0 ? "gradient-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>
+            <span className="text-sm font-medium">Lucro</span>
+            <span className="text-lg font-bold">R$ {fmtBRL(lucro)}</span>
+          </div>
+          <div className="flex justify-between rounded-lg bg-muted px-3 py-2">
+            <span className="text-sm font-medium">Margem</span>
+            <span className="text-lg font-bold">{fmtPct(margem)}</span>
+          </div>
+          <div className="flex justify-between rounded-lg bg-muted px-3 py-2">
+            <span className="text-sm font-medium">Markup</span>
+            <span className="text-lg font-bold">{fmtPct(markup)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
   const [state, dispatch] = useReducer(calcReducer, initialState);
 
@@ -242,7 +310,7 @@ const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-foreground/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-background rounded-2xl shadow-lg w-full max-w-xs overflow-hidden animate-scale-in">
+      <div className="bg-background rounded-2xl shadow-lg w-full max-w-xs overflow-hidden animate-scale-in max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="font-semibold text-foreground">Calculadora</h2>
@@ -251,35 +319,55 @@ const CalculatorModal = ({ onClose }: CalculatorModalProps) => {
           </Button>
         </div>
 
-        {/* Display */}
-        <div className="p-4 bg-muted/50">
-          <div className="text-right">
-            {state.firstOperand !== null && state.operator && (
-              <p className="text-sm text-muted-foreground mb-1">
-                {state.firstOperand} {state.operator}
-              </p>
-            )}
-            <p className="text-3xl font-bold text-foreground truncate">
-              {state.display}
-            </p>
-          </div>
-        </div>
+        <Tabs defaultValue="normal" className="w-full">
+          <TabsList className="w-full grid grid-cols-2 rounded-none border-b border-border h-auto">
+            <TabsTrigger value="normal" className="text-xs py-2 flex items-center gap-1">
+              <CalcIcon className="w-3.5 h-3.5" />
+              Normal
+            </TabsTrigger>
+            <TabsTrigger value="margem" className="text-xs py-2 flex items-center gap-1">
+              <TrendingUp className="w-3.5 h-3.5" />
+              Margem/Markup
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Buttons */}
-        <div className="p-3 grid grid-cols-4 gap-2">
-          {buttons.flat().map((btn, index) => (
-            <button
-              key={index}
-              onClick={() => handleButton(btn)}
-              className={`h-14 rounded-xl font-semibold text-lg transition-all active:scale-95 ${getButtonStyle(btn)}`}
-            >
-              {btn === "⌫" ? <Delete className="w-5 h-5 mx-auto" /> : btn}
-            </button>
-          ))}
-        </div>
+          <TabsContent value="normal" className="mt-0">
+            {/* Display */}
+            <div className="p-4 bg-muted/50">
+              <div className="text-right">
+                {state.firstOperand !== null && state.operator && (
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {state.firstOperand} {state.operator}
+                  </p>
+                )}
+                <p className="text-3xl font-bold text-foreground truncate">
+                  {state.display}
+                </p>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="p-3 grid grid-cols-4 gap-2">
+              {buttons.flat().map((btn, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleButton(btn)}
+                  className={`h-14 rounded-xl font-semibold text-lg transition-all active:scale-95 ${getButtonStyle(btn)}`}
+                >
+                  {btn === "⌫" ? <Delete className="w-5 h-5 mx-auto" /> : btn}
+                </button>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="margem" className="mt-0">
+            <MargemMarkupCalc />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
 };
 
 export default CalculatorModal;
+
