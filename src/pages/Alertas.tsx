@@ -38,13 +38,36 @@ interface AlertaFornecedor {
   maiorDiferenca: number;
 }
 
+const persistedAlertasFilters: {
+  fornecedor: string;
+  dataInicio: Date | undefined;
+  dataFim: Date | undefined;
+} = {
+  fornecedor: "todos",
+  dataInicio: undefined,
+  dataFim: undefined,
+};
+
 const Alertas = () => {
   const navigate = useNavigate();
   const { produtos, fornecedores, loading } = useSupabaseData();
 
-  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("todos");
-  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>(undefined);
-  const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>(undefined);
+  const [filtroFornecedor, setFiltroFornecedorState] = useState<string>(persistedAlertasFilters.fornecedor);
+  const [filtroDataInicio, setFiltroDataInicioState] = useState<Date | undefined>(persistedAlertasFilters.dataInicio);
+  const [filtroDataFim, setFiltroDataFimState] = useState<Date | undefined>(persistedAlertasFilters.dataFim);
+
+  const setFiltroFornecedor = (v: string) => {
+    persistedAlertasFilters.fornecedor = v;
+    setFiltroFornecedorState(v);
+  };
+  const setFiltroDataInicio = (v: Date | undefined) => {
+    persistedAlertasFilters.dataInicio = v;
+    setFiltroDataInicioState(v);
+  };
+  const setFiltroDataFim = (v: Date | undefined) => {
+    persistedAlertasFilters.dataFim = v;
+    setFiltroDataFimState(v);
+  };
 
   const fornecedoresComAlertas = useMemo(() => {
     const ids = new Set<string>();
