@@ -49,6 +49,13 @@ const Index = () => {
       path: "/fornecedores",
     },
     {
+      title: "Alertas",
+      description: "Produtos com aumento de preço",
+      icon: AlertTriangle,
+      color: "bg-destructive",
+      path: "/alertas",
+    },
+    {
       title: "Configurações",
       description: "Importe XMLs e configure o sistema",
       icon: Settings,
