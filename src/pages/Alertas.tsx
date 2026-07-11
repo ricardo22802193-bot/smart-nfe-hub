@@ -1,10 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, AlertTriangle, TrendingUp, Loader2, ChevronRight, Building2 } from "lucide-react";
+import {
+  ArrowLeft,
+  AlertTriangle,
+  TrendingUp,
+  Loader2,
+  ChevronRight,
+  Building2,
+  Search,
+  X,
+  CalendarIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { formatCurrency, formatDate } from "@/lib/nfe-parser";
 import type { HistoricoPedido } from "@/types/nfe";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
 
 interface AlertaProduto {
   produtoId: string;
@@ -25,11 +38,25 @@ interface AlertaFornecedor {
   maiorDiferenca: number;
 }
 
-const UMA_SEMANA_MS = 7 * 24 * 60 * 60 * 1000;
-
 const Alertas = () => {
   const navigate = useNavigate();
   const { produtos, fornecedores, loading } = useSupabaseData();
+
+  const [filtroFornecedor, setFiltroFornecedor] = useState<string>("todos");
+  const [filtroDataInicio, setFiltroDataInicio] = useState<Date | undefined>(undefined);
+  const [filtroDataFim, setFiltroDataFim] = useState<Date | undefined>(undefined);
+
+  const fornecedoresComAlertas = useMemo(() => {
+    const ids = new Set<string>();
+    for (const p of produtos) {
+      for (const h of p.historicoPedidos || []) {
+        ids.add(h.fornecedorId);
+      }
+    }
+    return fornecedores
+      .filter((f) => ids.has(f.id))
+      .sort((a, b) => (a.nomeFantasia || a.razaoSocial || "").localeCompare(b.nomeFantasia || b.razaoSocial || ""));
+  }, [produtos, fornecedores]);
 
   const alertasPorFornecedor = useMemo<AlertaFornecedor[]>(() => {
     const mapaFornecedor = new Map<string, AlertaProduto[]>();
@@ -40,7 +67,6 @@ const Alertas = () => {
       );
       if (historico.length < 2) continue;
 
-      // Agrupa por fornecedor para comparar preços do mesmo fornecedor
       const porFornecedor = new Map<string, HistoricoPedido[]>();
       for (const h of historico) {
         if (!porFornecedor.has(h.fornecedorId)) porFornecedor.set(h.fornecedorId, []);
@@ -53,7 +79,6 @@ const Alertas = () => {
         const anterior = itens[1];
         const diffDias =
           (new Date(atual.data).getTime() - new Date(anterior.data).getTime()) / (24 * 60 * 60 * 1000);
-        // considera aumento "de uma semana para outra": entradas com pelo menos 1 dia e até ~30 dias
         if (diffDias < 1 || diffDias > 30) continue;
 
         const precoAtual = atual.valorUnitarioReal || atual.valorUnitario;
@@ -62,6 +87,9 @@ const Alertas = () => {
 
         const diferenca = precoAtual - precoAnterior;
         const percentual = precoAnterior > 0 ? (diferenca / precoAnterior) * 100 : 0;
+
+        const dataAtual = new Date(atual.data);
+        const dataAnterior = new Date(anterior.data);
 
         if (!mapaFornecedor.has(fornecedorId)) mapaFornecedor.set(fornecedorId, []);
         mapaFornecedor.get(fornecedorId)!.push({
@@ -72,8 +100,8 @@ const Alertas = () => {
           precoAnterior,
           diferenca,
           percentual,
-          dataAtual: new Date(atual.data),
-          dataAnterior: new Date(anterior.data),
+          dataAtual,
+          dataAnterior,
         });
       }
     }
@@ -81,9 +109,7 @@ const Alertas = () => {
     const resultado: AlertaFornecedor[] = [];
     for (const [fornecedorId, produtosAlerta] of mapaFornecedor) {
       const fornecedor = fornecedores.find((f) => f.id === fornecedorId);
-      const nome = fornecedor?.nomeFantasia || fornecedor?.razaoSocial || produtosAlerta[0]
-        ? (fornecedor?.nomeFantasia || fornecedor?.razaoSocial || "Fornecedor")
-        : "Fornecedor";
+      const nome = fornecedor?.nomeFantasia || fornecedor?.razaoSocial || "Fornecedor";
       produtosAlerta.sort((a, b) => b.diferenca - a.diferenca);
       resultado.push({
         fornecedorId,
@@ -97,7 +123,42 @@ const Alertas = () => {
     return resultado;
   }, [produtos, fornecedores]);
 
-  const totalAlertas = alertasPorFornecedor.reduce((s, f) => s + f.produtos.length, 0);
+  const alertasFiltrados = useMemo(() => {
+    let result = [...alertasPorFornecedor];
+
+    if (filtroFornecedor !== "todos") {
+      result = result.filter((f) => f.fornecedorId === filtroFornecedor);
+    }
+
+    if (filtroDataInicio || filtroDataFim) {
+      const inicio = filtroDataInicio ? new Date(filtroDataInicio).setHours(0, 0, 0, 0) : null;
+      const fim = filtroDataFim ? new Date(filtroDataFim).setHours(23, 59, 59, 999) : null;
+
+      result = result
+        .map((f) => ({
+          ...f,
+          produtos: f.produtos.filter((p) => {
+            const dAtual = p.dataAtual.getTime();
+            const dAnterior = p.dataAnterior.getTime();
+            if (inicio && dAtual < inicio && dAnterior < inicio) return false;
+            if (fim && dAtual > fim && dAnterior > fim) return false;
+            return true;
+          }),
+        }))
+        .filter((f) => f.produtos.length > 0);
+    }
+
+    return result;
+  }, [alertasPorFornecedor, filtroFornecedor, filtroDataInicio, filtroDataFim]);
+
+  const totalAlertas = alertasFiltrados.reduce((s, f) => s + f.produtos.length, 0);
+  const filtrosAtivos = filtroFornecedor !== "todos" || !!filtroDataInicio || !!filtroDataFim;
+
+  const limparFiltros = () => {
+    setFiltroFornecedor("todos");
+    setFiltroDataInicio(undefined);
+    setFiltroDataFim(undefined);
+  };
 
   if (loading) {
     return (
@@ -110,7 +171,7 @@ const Alertas = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="bg-card shadow-card border-b border-border sticky top-0 z-10">
-        <div className="container py-4">
+        <div className="container py-4 space-y-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="shrink-0">
               <ArrowLeft className="w-5 h-5" />
@@ -122,26 +183,107 @@ const Alertas = () => {
               <div>
                 <h1 className="text-xl font-bold text-foreground">Alertas de Aumento</h1>
                 <p className="text-sm text-muted-foreground">
-                  {totalAlertas} produto(s) com aumento em {alertasPorFornecedor.length} fornecedor(es)
+                  {totalAlertas} produto(s) com aumento em {alertasFiltrados.length} fornecedor(es)
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+            <div className="relative flex-1 sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <select
+                value={filtroFornecedor}
+                onChange={(e) => setFiltroFornecedor(e.target.value)}
+                className="w-full h-10 pl-9 pr-8 rounded-md border border-input bg-background text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="todos">Todos os fornecedores</option>
+                {fornecedoresComAlertas.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nomeFantasia || f.razaoSocial}
+                  </option>
+                ))}
+              </select>
+              <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rotate-90 pointer-events-none" />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto justify-start text-left font-normal h-10"
+                  >
+                    <CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                    {filtroDataInicio ? (
+                      <span className="text-foreground">{formatDate(filtroDataInicio)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Data início</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filtroDataInicio}
+                    onSelect={setFiltroDataInicio}
+                    initialFocus
+                    locale={ptBR}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto justify-start text-left font-normal h-10"
+                  >
+                    <CalendarIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                    {filtroDataFim ? (
+                      <span className="text-foreground">{formatDate(filtroDataFim)}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Data fim</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filtroDataFim}
+                    onSelect={setFiltroDataFim}
+                    initialFocus
+                    locale={ptBR}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {filtrosAtivos && (
+                <Button variant="ghost" size="icon" onClick={limparFiltros} className="shrink-0">
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
       <div className="container py-4">
-        {alertasPorFornecedor.length === 0 ? (
+        {alertasFiltrados.length === 0 ? (
           <div className="text-center py-12">
             <AlertTriangle className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
             <p className="text-muted-foreground">Nenhum aumento de preço identificado</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Compare compras recentes para detectar variações
+              {filtrosAtivos
+                ? "Tente ajustar os filtros para ver mais resultados"
+                : "Compare compras recentes para detectar variações"}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {alertasPorFornecedor.map((f, idx) => (
+            {alertasFiltrados.map((f, idx) => (
               <div
                 key={f.fornecedorId}
                 className="bg-card rounded-xl border border-border shadow-card overflow-hidden animate-slide-up"
