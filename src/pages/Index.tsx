@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Search, FileText, Users, Settings, Package, LogOut } from "lucide-react";
+import { Search, FileText, Users, Settings, Package, LogOut, AlertTriangle } from "lucide-react";
 import { useSupabaseData } from "@/hooks/use-supabase-data";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
