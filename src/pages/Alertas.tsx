@@ -343,17 +343,19 @@ const Alertas = () => {
                           <p className="text-xs text-muted-foreground">
                             Cód. {p.codigo} • {formatDate(p.dataAnterior)} → {formatDate(p.dataAtual)}
                           </p>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs">
-                            <span className="text-muted-foreground line-through">
-                              {formatCurrency(p.precoAnterior)}
-                            </span>
-                            <span className="text-foreground font-semibold">
-                              {formatCurrency(p.precoAtual)}
-                            </span>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs">
                             <span className="text-destructive font-bold">
                               +{formatCurrency(p.diferenca)} ({p.percentual.toFixed(1)}%)
                             </span>
                           </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
+                          <span className="text-[11px] text-muted-foreground">
+                            de <span className="line-through">{formatCurrency(p.precoAnterior)}</span>
+                          </span>
+                          <span className="text-sm font-bold text-foreground">
+                            para {formatCurrency(p.precoAtual)}
+                          </span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       </button>
