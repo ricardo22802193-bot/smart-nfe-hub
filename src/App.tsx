@@ -12,6 +12,7 @@ import Fornecedores from "./pages/Fornecedores";
 import FornecedorDetalhe from "./pages/FornecedorDetalhe";
 import Configuracoes from "./pages/Configuracoes";
 import ProdutoDetalhe from "./pages/ProdutoDetalhe";
+import Alertas from "./pages/Alertas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
