@@ -51,10 +51,16 @@ const ProdutoDetalhe = () => {
   const ultimoPedido = historicoOrdenado[0];
   const penultimoPedido = historicoOrdenado[1];
 
+  const calcularValorCaixa = (pedido: HistoricoPedido) => {
+    return pedido.valorUnitarioReal || pedido.valorUnitario;
+  };
+
+  const temEmbalagem = !!(produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1);
+
   const calcularValorUnitarioReal = (pedido: HistoricoPedido) => {
-    const valorBase = pedido.valorUnitarioReal || pedido.valorUnitario;
-    if (produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1) {
-      return valorBase / produto.quantidadeEmbalagem;
+    const valorBase = calcularValorCaixa(pedido);
+    if (temEmbalagem) {
+      return valorBase / (produto.quantidadeEmbalagem as number);
     }
     return valorBase;
   };
@@ -62,6 +68,8 @@ const ProdutoDetalhe = () => {
   const valorUnitarioAtual = ultimoPedido
     ? calcularValorUnitarioReal(ultimoPedido)
     : 0;
+
+  const valorCaixaAtual = ultimoPedido ? calcularValorCaixa(ultimoPedido) : 0;
 
   const valorUnitarioAnterior = penultimoPedido
     ? calcularValorUnitarioReal(penultimoPedido)
