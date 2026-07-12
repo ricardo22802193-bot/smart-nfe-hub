@@ -398,10 +398,15 @@ const ProdutoCard = memo(function ProdutoCard({ produto }: { produto: Produto })
                 {ultimoPedido?.despesas && <Info className="w-3 h-3 text-primary/60" />}
               </p>
             </div>
-            {produto.quantidadeEmbalagem && (
-              <p className="text-xs text-muted-foreground">
-                por un. ({produto.quantidadeEmbalagem}/cx)
-              </p>
+            {produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1 && (
+              <>
+                <p className="text-xs text-muted-foreground">
+                  por un. ({produto.quantidadeEmbalagem}/cx)
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  cx: <span className="font-medium text-foreground">{formatCurrency(valorUnitarioBase)}</span>
+                </p>
+              </>
             )}
             <p className="text-xs text-muted-foreground">
               {produto.historicoPedidos.length} compra(s)
