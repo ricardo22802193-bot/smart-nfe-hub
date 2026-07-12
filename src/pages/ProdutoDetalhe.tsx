@@ -144,9 +144,9 @@ const ProdutoDetalhe = () => {
               <p className="text-2xl sm:text-3xl font-bold text-primary-foreground">
                 {formatCurrency(valorUnitarioAtual)}
               </p>
-              {produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1 && (
-                <p className="text-xs sm:text-sm text-primary-foreground/70 mt-1">
-                  por unidade ({produto.quantidadeEmbalagem} un/embalagem)
+              {temEmbalagem && (
+                <p className="text-xs sm:text-sm text-primary-foreground/80 mt-1">
+                  por unidade • Caixa: <span className="font-semibold">{formatCurrency(valorCaixaAtual)}</span> ({produto.quantidadeEmbalagem} un/cx)
                 </p>
               )}
               <p className="text-xs text-primary-foreground/60 mt-1">
