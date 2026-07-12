@@ -201,16 +201,31 @@ export const useSupabaseDataStore = create<SupabaseDataState & SupabaseDataActio
         dbFornecedorToFornecedor(f, (f.contatos || []).map(dbContatoToContato))
       );
 
-      // Fetch all produtos (paged to bypass API 1000-row cap - important for barcode scanning)
+      // Fetch all produtos and all history separately so alert comparisons are never
+      // limited by nested relationship caps.
       const produtosData = await fetchAllFromSupabase<any>({
         table: "produtos",
-        select: "*, historico_pedidos(*)",
+        select: "*",
         orderColumn: "id",
         batchSize: 1000,
       });
 
+      const historicoData = await fetchAllFromSupabase<any>({
+        table: "historico_pedidos",
+        select: "*",
+        orderColumn: "data",
+        batchSize: 1000,
+      });
+
+      const historicoPorProduto = new Map<string, HistoricoPedido[]>();
+      for (const h of historicoData || []) {
+        const produtoId = h.produto_id;
+        if (!historicoPorProduto.has(produtoId)) historicoPorProduto.set(produtoId, []);
+        historicoPorProduto.get(produtoId)!.push(dbHistoricoToHistorico(h));
+      }
+
       const produtosList = (produtosData || []).map((p: any) =>
-        dbProdutoToProduto(p, (p.historico_pedidos || []).map(dbHistoricoToHistorico))
+        dbProdutoToProduto(p, historicoPorProduto.get(p.id) || [])
       );
 
       // Fetch all NFes (paged to bypass API 1000-row cap)

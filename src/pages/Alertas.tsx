@@ -20,9 +20,15 @@ import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
 
 interface AlertaProduto {
+  id: string;
   produtoId: string;
   codigo: string;
   descricao: string;
+  unidade: string;
+  nfeAtualId: string;
+  nfeAnteriorId: string;
+  nfeAtualNumero: string;
+  nfeAnteriorNumero: string;
   precoAtual: number;
   precoAnterior: number;
   diferenca: number;
@@ -46,6 +52,17 @@ const persistedAlertasFilters: {
   fornecedor: "todos",
   dataInicio: undefined,
   dataFim: undefined,
+};
+
+const getPrecoHistorico = (h: HistoricoPedido) => h.valorUnitarioReal || h.valorUnitario || 0;
+
+const getTime = (date: Date) => new Date(date).getTime();
+
+const isInDateRange = (date: Date, inicio: number | null, fim: number | null) => {
+  const time = getTime(date);
+  if (inicio !== null && time < inicio) return false;
+  if (fim !== null && time > fim) return false;
+  return true;
 };
 
 const Alertas = () => {
@@ -83,11 +100,13 @@ const Alertas = () => {
 
   const alertasPorFornecedor = useMemo<AlertaFornecedor[]>(() => {
     const mapaFornecedor = new Map<string, AlertaProduto[]>();
+    const inicio = filtroDataInicio ? new Date(filtroDataInicio).setHours(0, 0, 0, 0) : null;
+    const fim = filtroDataFim ? new Date(filtroDataFim).setHours(23, 59, 59, 999) : null;
 
     for (const produto of produtos) {
-      const historico = [...(produto.historicoPedidos || [])].sort(
-        (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
-      );
+      const historico = [...(produto.historicoPedidos || [])]
+        .filter((h) => isInDateRange(new Date(h.data), inicio, fim))
+        .sort((a, b) => getTime(a.data) - getTime(b.data));
       if (historico.length < 2) continue;
 
       const porFornecedor = new Map<string, HistoricoPedido[]>();
@@ -98,34 +117,39 @@ const Alertas = () => {
 
       for (const [fornecedorId, itens] of porFornecedor) {
         if (itens.length < 2) continue;
-        const atual = itens[0];
-        const anterior = itens[1];
-        const diffDias =
-          (new Date(atual.data).getTime() - new Date(anterior.data).getTime()) / (24 * 60 * 60 * 1000);
-        if (diffDias < 1 || diffDias > 30) continue;
+        const itensOrdenados = [...itens].sort((a, b) => getTime(a.data) - getTime(b.data));
 
-        const precoAtual = atual.valorUnitarioReal || atual.valorUnitario;
-        const precoAnterior = anterior.valorUnitarioReal || anterior.valorUnitario;
-        if (precoAtual <= precoAnterior) continue;
+        for (let i = 1; i < itensOrdenados.length; i++) {
+          const anterior = itensOrdenados[i - 1];
+          const atual = itensOrdenados[i];
+          const precoAtual = getPrecoHistorico(atual);
+          const precoAnterior = getPrecoHistorico(anterior);
+          if (precoAtual <= precoAnterior) continue;
 
-        const diferenca = precoAtual - precoAnterior;
-        const percentual = precoAnterior > 0 ? (diferenca / precoAnterior) * 100 : 0;
+          const diferenca = precoAtual - precoAnterior;
+          const percentual = precoAnterior > 0 ? (diferenca / precoAnterior) * 100 : 0;
+          const dataAtual = new Date(atual.data);
+          const dataAnterior = new Date(anterior.data);
 
-        const dataAtual = new Date(atual.data);
-        const dataAnterior = new Date(anterior.data);
-
-        if (!mapaFornecedor.has(fornecedorId)) mapaFornecedor.set(fornecedorId, []);
-        mapaFornecedor.get(fornecedorId)!.push({
-          produtoId: produto.id,
-          codigo: produto.codigo,
-          descricao: produto.descricao,
-          precoAtual,
-          precoAnterior,
-          diferenca,
-          percentual,
-          dataAtual,
-          dataAnterior,
-        });
+          if (!mapaFornecedor.has(fornecedorId)) mapaFornecedor.set(fornecedorId, []);
+          mapaFornecedor.get(fornecedorId)!.push({
+            id: `${produto.id}-${fornecedorId}-${anterior.id}-${atual.id}`,
+            produtoId: produto.id,
+            codigo: produto.codigo,
+            descricao: produto.descricao,
+            unidade: produto.unidade,
+            nfeAtualId: atual.nfeId,
+            nfeAnteriorId: anterior.nfeId,
+            nfeAtualNumero: atual.nfeNumero,
+            nfeAnteriorNumero: anterior.nfeNumero,
+            precoAtual,
+            precoAnterior,
+            diferenca,
+            percentual,
+            dataAtual,
+            dataAnterior,
+          });
+        }
       }
     }
 
@@ -144,7 +168,7 @@ const Alertas = () => {
 
     resultado.sort((a, b) => b.maiorDiferenca - a.maiorDiferenca);
     return resultado;
-  }, [produtos, fornecedores]);
+  }, [produtos, fornecedores, filtroDataInicio, filtroDataFim]);
 
   const alertasFiltrados = useMemo(() => {
     let result = [...alertasPorFornecedor];
@@ -153,26 +177,8 @@ const Alertas = () => {
       result = result.filter((f) => f.fornecedorId === filtroFornecedor);
     }
 
-    if (filtroDataInicio || filtroDataFim) {
-      const inicio = filtroDataInicio ? new Date(filtroDataInicio).setHours(0, 0, 0, 0) : null;
-      const fim = filtroDataFim ? new Date(filtroDataFim).setHours(23, 59, 59, 999) : null;
-
-      result = result
-        .map((f) => ({
-          ...f,
-          produtos: f.produtos.filter((p) => {
-            const dAtual = p.dataAtual.getTime();
-            const dAnterior = p.dataAnterior.getTime();
-            if (inicio && dAtual < inicio && dAnterior < inicio) return false;
-            if (fim && dAtual > fim && dAnterior > fim) return false;
-            return true;
-          }),
-        }))
-        .filter((f) => f.produtos.length > 0);
-    }
-
     return result;
-  }, [alertasPorFornecedor, filtroFornecedor, filtroDataInicio, filtroDataFim]);
+  }, [alertasPorFornecedor, filtroFornecedor]);
 
   const totalAlertas = alertasFiltrados.reduce((s, f) => s + f.produtos.length, 0);
   const filtrosAtivos = filtroFornecedor !== "todos" || !!filtroDataInicio || !!filtroDataFim;
@@ -330,7 +336,7 @@ const Alertas = () => {
 
                 <ul className="divide-y divide-border">
                   {f.produtos.map((p) => (
-                    <li key={p.produtoId}>
+                    <li key={p.id}>
                       <button
                         onClick={() => navigate(`/produto/${p.produtoId}`)}
                         className="w-full flex items-center gap-3 p-4 hover:bg-muted/40 transition-colors text-left"
@@ -343,6 +349,9 @@ const Alertas = () => {
                           <p className="text-xs text-muted-foreground">
                             Cód. {p.codigo} • {formatDate(p.dataAnterior)} → {formatDate(p.dataAtual)}
                           </p>
+                          <p className="text-xs text-muted-foreground">
+                            NF {p.nfeAnteriorNumero} → NF {p.nfeAtualNumero}
+                          </p>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-xs">
                             <span className="text-destructive font-bold">
                               +{formatCurrency(p.diferenca)} ({p.percentual.toFixed(1)}%)
@@ -351,11 +360,12 @@ const Alertas = () => {
                         </div>
                         <div className="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
                           <span className="text-[11px] text-muted-foreground">
-                            de <span className="line-through">{formatCurrency(p.precoAnterior)}</span>
+                            unid. era <span className="line-through">{formatCurrency(p.precoAnterior)}</span>
                           </span>
                           <span className="text-sm font-bold text-foreground">
-                            para {formatCurrency(p.precoAtual)}
+                            agora {formatCurrency(p.precoAtual)}
                           </span>
+                          <span className="text-[11px] text-muted-foreground">/{p.unidade}</span>
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       </button>
