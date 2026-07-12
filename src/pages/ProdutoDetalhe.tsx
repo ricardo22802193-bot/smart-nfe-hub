@@ -293,6 +293,11 @@ const ProdutoDetalhe = () => {
                     <p className="font-medium text-primary">
                       {formatCurrency(calcularValorUnitarioReal(pedido))}
                     </p>
+                    {temEmbalagem && (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        cx: {formatCurrency(calcularValorCaixa(pedido))}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-muted-foreground">Impostos</p>
