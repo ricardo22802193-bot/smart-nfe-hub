@@ -51,10 +51,16 @@ const ProdutoDetalhe = () => {
   const ultimoPedido = historicoOrdenado[0];
   const penultimoPedido = historicoOrdenado[1];
 
+  const calcularValorCaixa = (pedido: HistoricoPedido) => {
+    return pedido.valorUnitarioReal || pedido.valorUnitario;
+  };
+
+  const temEmbalagem = !!(produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1);
+
   const calcularValorUnitarioReal = (pedido: HistoricoPedido) => {
-    const valorBase = pedido.valorUnitarioReal || pedido.valorUnitario;
-    if (produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1) {
-      return valorBase / produto.quantidadeEmbalagem;
+    const valorBase = calcularValorCaixa(pedido);
+    if (temEmbalagem) {
+      return valorBase / (produto.quantidadeEmbalagem as number);
     }
     return valorBase;
   };
@@ -62,6 +68,8 @@ const ProdutoDetalhe = () => {
   const valorUnitarioAtual = ultimoPedido
     ? calcularValorUnitarioReal(ultimoPedido)
     : 0;
+
+  const valorCaixaAtual = ultimoPedido ? calcularValorCaixa(ultimoPedido) : 0;
 
   const valorUnitarioAnterior = penultimoPedido
     ? calcularValorUnitarioReal(penultimoPedido)
@@ -136,9 +144,9 @@ const ProdutoDetalhe = () => {
               <p className="text-2xl sm:text-3xl font-bold text-primary-foreground">
                 {formatCurrency(valorUnitarioAtual)}
               </p>
-              {produto.quantidadeEmbalagem && produto.quantidadeEmbalagem > 1 && (
-                <p className="text-xs sm:text-sm text-primary-foreground/70 mt-1">
-                  por unidade ({produto.quantidadeEmbalagem} un/embalagem)
+              {temEmbalagem && (
+                <p className="text-xs sm:text-sm text-primary-foreground/80 mt-1">
+                  por unidade • Caixa: <span className="font-semibold">{formatCurrency(valorCaixaAtual)}</span> ({produto.quantidadeEmbalagem} un/cx)
                 </p>
               )}
               <p className="text-xs text-primary-foreground/60 mt-1">
@@ -285,6 +293,11 @@ const ProdutoDetalhe = () => {
                     <p className="font-medium text-primary">
                       {formatCurrency(calcularValorUnitarioReal(pedido))}
                     </p>
+                    {temEmbalagem && (
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        cx: {formatCurrency(calcularValorCaixa(pedido))}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-muted-foreground">Impostos</p>
