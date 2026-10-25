@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, test } from "node:test";
+import assert from "node:assert/strict";
 import { getAlertPrice } from "./alert-price";
 import type { HistoricoPedido } from "../types/nfe";
 
@@ -13,22 +14,22 @@ const pedido = (overrides: Partial<HistoricoPedido> = {}): HistoricoPedido => ({
 
 describe("Custo unitário nos Alertas", () => {
   test("desmembra a caixa pelo cadastro sem dividir duas vezes", () => {
-    expect(getAlertPrice(pedido(), 12).precoUnitario).toBe(10);
+    assert.equal(getAlertPrice(pedido(), 12).precoUnitario, 10);
   });
   test("preserva todos os encargos cobrados no total, sem somar impostos embutidos", () => {
-    expect(getAlertPrice(pedido({ valorTotalComDespesas: 264 }), 12).precoUnitario).toBe(11);
+    assert.equal(getAlertPrice(pedido({ valorTotalComDespesas: 264 }), 12).precoUnitario, 11);
   });
   test("usa a embalagem específica da compra antes do cadastro atual", () => {
-    expect(getAlertPrice(pedido({ quantidadeEmbalagem: 24 }), 12).precoUnitario).toBe(5);
+    assert.equal(getAlertPrice(pedido({ quantidadeEmbalagem: 24 }), 12).precoUnitario, 5);
   });
   test("recompõe encargos e desconta descontos quando falta o custo salvo", () => {
-    expect(getAlertPrice(pedido({ valorTotalComDespesas: 0, valorUnitarioReal: 0 }), 12).precoUnitario).toBe(10);
+    assert.equal(getAlertPrice(pedido({ valorTotalComDespesas: 0, valorUnitarioReal: 0 }), 12).precoUnitario, 10);
   });
   test("detecta aumento de 1,57 para 1,85 depois de desmembrar", () => {
     const anterior = getAlertPrice(pedido({ quantidade: 1, valorTotalComDespesas: 31.4 }), 20);
     const atual = getAlertPrice(pedido({ quantidade: 1, valorTotalComDespesas: 37 }), 20);
-    expect(anterior.precoUnitario).toBeCloseTo(1.57, 8);
-    expect(atual.precoUnitario).toBeCloseTo(1.85, 8);
-    expect(atual.precoUnitario - anterior.precoUnitario).toBeCloseTo(0.28, 8);
+    assert.ok(Math.abs(anterior.precoUnitario - 1.57) < 0.00000001);
+    assert.ok(Math.abs(atual.precoUnitario - 1.85) < 0.00000001);
+    assert.ok(Math.abs(atual.precoUnitario - anterior.precoUnitario - 0.28) < 0.00000001);
   });
 });
