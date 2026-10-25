@@ -11,27 +11,30 @@ import CertificadoManager from "@/components/CertificadoManager";
 const Configuracoes = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInProgress = useRef(false);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState({ total: 0, processed: 0 });
   const [results, setResults] = useState<{ file: string; success: boolean; message: string }[]>([]);
   const { addNFe, nfes, removeNFe, loading } = useSupabaseData();
   const { isIOS, isStandalone, promptInstall, canInstall } = usePwaInstall();
 
   const handleFileSelect = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || importInProgress.current) return;
 
+    importInProgress.current = true;
+    const selectedFiles = Array.from(files);
     setImporting(true);
     setResults([]);
+    setProgress({ total: selectedFiles.length, processed: 0 });
     const newResults: { file: string; success: boolean; message: string }[] = [];
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      if (!file.name.toLowerCase().endsWith(".xml")) {
-        newResults.push({ file: file.name, success: false, message: "Arquivo não é XML" });
-        continue;
-      }
-
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
       try {
+        if (!file.name.toLowerCase().endsWith(".xml")) {
+          newResults.push({ file: file.name, success: false, message: "Arquivo não é XML" });
+          continue;
+        }
         const text = await file.text();
         const nfe = parseNFeXML(text);
 
@@ -44,11 +47,16 @@ const Configuracoes = () => {
         newResults.push({ file: file.name, success: result.success, message: result.message });
       } catch (error) {
         newResults.push({ file: file.name, success: false, message: "Erro ao ler arquivo" });
+      } finally {
+        setProgress({ total: selectedFiles.length, processed: i + 1 });
+        setResults([...newResults]);
       }
     }
 
     setResults(newResults);
     setImporting(false);
+    importInProgress.current = false;
+    if (fileInputRef.current) fileInputRef.current.value = "";
 
     const successCount = newResults.filter(r => r.success).length;
     if (successCount > 0) {
@@ -127,7 +135,7 @@ const Configuracoes = () => {
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => !importInProgress.current && fileInputRef.current?.click()}
           className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors animate-fade-in"
         >
           <input
@@ -135,6 +143,7 @@ const Configuracoes = () => {
             type="file"
             accept=".xml"
             multiple
+            disabled={importing}
             onChange={(e) => handleFileSelect(e.target.files)}
             className="hidden"
           />
@@ -155,6 +164,39 @@ const Configuracoes = () => {
             <FileText className="w-4 h-4 mr-2" />
             Selecionar Arquivos
           </Button>
+          {progress.total > 0 && (
+            <div className="mt-5 mx-auto max-w-md space-y-2" role="status" aria-live="polite">
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <span className="font-medium text-foreground">
+                  {importing ? "Progresso da importação" : "Importação concluída"}
+                </span>
+                <span className="font-semibold text-primary">
+                  {Math.floor((progress.processed / progress.total) * 100)}%
+                </span>
+              </div>
+              <div
+                role="progressbar"
+                aria-label="Progresso da importação"
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.processed}
+                className="h-2 w-full overflow-hidden rounded-full bg-secondary"
+              >
+                <div
+                  className="h-full bg-primary transition-[width] motion-reduce:transition-none"
+                  style={{ width: `${(progress.processed / progress.total) * 100}%` }}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {progress.processed} de {progress.total} notas processadas
+                {" • "}{progress.total - progress.processed} restantes
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {results.filter((result) => result.success).length} importadas
+                {" • "}{results.filter((result) => !result.success).length} não importadas
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Results */}
