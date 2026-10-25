@@ -18,6 +18,7 @@ import type { HistoricoPedido } from "@/types/nfe";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ptBR } from "date-fns/locale";
+import { getAlertPrice } from "@/lib/alert-price";
 
 interface AlertaProduto {
   id: string;
@@ -35,6 +36,10 @@ interface AlertaProduto {
   percentual: number;
   dataAtual: Date;
   dataAnterior: Date;
+  embalagemAtual: number;
+  embalagemAnterior: number;
+  precoEmbalagemAtual: number;
+  precoEmbalagemAnterior: number;
 }
 
 interface AlertaFornecedor {
@@ -53,8 +58,6 @@ const persistedAlertasFilters: {
   dataInicio: undefined,
   dataFim: undefined,
 };
-
-const getPrecoHistorico = (h: HistoricoPedido) => h.valorUnitarioReal || h.valorUnitario || 0;
 
 const getTime = (date: Date) => new Date(date).getTime();
 
@@ -111,8 +114,9 @@ const Alertas = () => {
 
       const porFornecedor = new Map<string, HistoricoPedido[]>();
       for (const h of historico) {
-        if (!porFornecedor.has(h.fornecedorId)) porFornecedor.set(h.fornecedorId, []);
-        porFornecedor.get(h.fornecedorId)!.push(h);
+        const itens = porFornecedor.get(h.fornecedorId) || [];
+        itens.push(h);
+        porFornecedor.set(h.fornecedorId, itens);
       }
 
       for (const [fornecedorId, itens] of porFornecedor) {
@@ -122,17 +126,19 @@ const Alertas = () => {
         for (let i = 1; i < itensOrdenados.length; i++) {
           const anterior = itensOrdenados[i - 1];
           const atual = itensOrdenados[i];
-          const precoAtual = getPrecoHistorico(atual);
-          const precoAnterior = getPrecoHistorico(anterior);
-          if (precoAtual <= precoAnterior) continue;
+          const custoAtual = getAlertPrice(atual, produto.quantidadeEmbalagem);
+          const custoAnterior = getAlertPrice(anterior, produto.quantidadeEmbalagem);
+          const precoAtual = custoAtual.precoUnitario;
+          const precoAnterior = custoAnterior.precoUnitario;
+          if (precoAtual - precoAnterior < 0.000001) continue;
 
           const diferenca = precoAtual - precoAnterior;
           const percentual = precoAnterior > 0 ? (diferenca / precoAnterior) * 100 : 0;
           const dataAtual = new Date(atual.data);
           const dataAnterior = new Date(anterior.data);
 
-          if (!mapaFornecedor.has(fornecedorId)) mapaFornecedor.set(fornecedorId, []);
-          mapaFornecedor.get(fornecedorId)!.push({
+          const alertas = mapaFornecedor.get(fornecedorId) || [];
+          alertas.push({
             id: `${produto.id}-${fornecedorId}-${anterior.id}-${atual.id}`,
             produtoId: produto.id,
             codigo: produto.codigo,
@@ -148,7 +154,12 @@ const Alertas = () => {
             percentual,
             dataAtual,
             dataAnterior,
+            embalagemAtual: custoAtual.quantidadeEmbalagem,
+            embalagemAnterior: custoAnterior.quantidadeEmbalagem,
+            precoEmbalagemAtual: custoAtual.precoEmbalagem,
+            precoEmbalagemAnterior: custoAnterior.precoEmbalagem,
           });
+          mapaFornecedor.set(fornecedorId, alertas);
         }
       }
     }
@@ -358,14 +369,22 @@ const Alertas = () => {
                             </span>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
+                        <div className="flex flex-col items-end gap-0.5 max-w-[45%] text-right">
                           <span className="text-[11px] text-muted-foreground">
                             unid. era <span className="line-through">{formatCurrency(p.precoAnterior)}</span>
                           </span>
                           <span className="text-sm font-bold text-foreground">
                             agora {formatCurrency(p.precoAtual)}
                           </span>
-                          <span className="text-[11px] text-muted-foreground">/{p.unidade}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            /{p.embalagemAtual > 1 || p.embalagemAnterior > 1 ? "un" : p.unidade} · custo completo
+                          </span>
+                          {(p.embalagemAtual > 1 || p.embalagemAnterior > 1) && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Emb. {formatCurrency(p.precoEmbalagemAnterior)} ({p.embalagemAnterior} un)
+                              {" → "}{formatCurrency(p.precoEmbalagemAtual)} ({p.embalagemAtual} un)
+                            </span>
+                          )}
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                       </button>
