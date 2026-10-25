@@ -213,15 +213,16 @@ export const useSupabaseDataStore = create<SupabaseDataState & SupabaseDataActio
       const historicoData = await fetchAllFromSupabase<any>({
         table: "historico_pedidos",
         select: "*",
-        orderColumn: "data",
+        orderColumn: "id",
         batchSize: 1000,
       });
 
       const historicoPorProduto = new Map<string, HistoricoPedido[]>();
       for (const h of historicoData || []) {
         const produtoId = h.produto_id;
-        if (!historicoPorProduto.has(produtoId)) historicoPorProduto.set(produtoId, []);
-        historicoPorProduto.get(produtoId)!.push(dbHistoricoToHistorico(h));
+        const historico = historicoPorProduto.get(produtoId) || [];
+        historico.push(dbHistoricoToHistorico(h));
+        historicoPorProduto.set(produtoId, historico);
       }
 
       const produtosList = (produtosData || []).map((p: any) =>
